@@ -1,0 +1,105 @@
+
+#container-header {
+  width: 100%;
+  background-color: #0b0f1a;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 64px;
+  background-color: #0b0f1a;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logoLink {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.logoGoverno {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+}
+
+.divider {
+  width: 1px;
+  height: 36px;
+  background-color: rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.brandBlock {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.brandName {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
+  color: #e8eaf6;
+}
+
+.brandThin {
+  font-weight: 300;
+  color: #e8eaf6;
+}
+
+.brandBold {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.brandSub {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: #5b8fd4;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.logoSecretaria {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
+.logoSecretaria:hover {
+  opacity: 0.9;
+}
+
+.headerBorder {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(91, 143, 212, 0.3) 20%,
+    rgba(91, 143, 212, 0.3) 80%,
+    transparent
+  );
+}
