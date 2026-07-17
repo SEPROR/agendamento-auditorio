@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, User, Tag, CheckCircle2, AlertCircle, Info } from "lucide-react";
-import { SETORES, ASSUNTOS, SALAS } from "../../constants.js";
+import { ASSUNTOS, SALAS } from "../../constants.js";
 import Header from "../../components/Header";
 import SelectField from "../../components/SelectField";
 import InputField from "../../components/InputField";
 import SalaCard from "../../components/SalaCard";
 import CalendarPanel from "../../components/CalendarPanel";
-import SuccessScreen from "../../components/SuccessScreen"; // (Após corrigir o nome da pasta)
+import SuccessScreen from "../../components/SuccessScreen";
 import styles from "./index.module.css";
+
+const API_URL = "http://localhost:3000"; // ajuste se seu backend estiver em outra porta/host
 
 const EMPTY_FORM = {
   nome: "", setor: "", assunto: "", sala: "",
@@ -19,7 +21,32 @@ const Home = () => {
   const [errors, setErrors]       = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [enviando, setEnviando]   = useState(false);
 
+  // Setores vindos do backend
+  const [setores, setSetores] = useState([]);
+  const [carregandoSetores, setCarregandoSetores] = useState(true);
+
+  useEffect(() => {
+  async function fetchSetores() {
+    try {
+      const res = await fetch(`${API_URL}/api/setores`);
+
+      if (!res.ok) {
+        throw new Error(`Erro ao buscar setores: ${res.status}`);
+      }
+
+      const data = await res.json();
+      setSetores(data);
+    } catch (err) {
+      console.error("Erro ao buscar setores:", err);
+      setSetores([]); // garante que fica um array vazio, evitando o crash do .map
+    } finally {
+      setCarregandoSetores(false);
+    }
+  }
+  fetchSetores();
+}, []);
   const set = (field) => (value) => {
     setForm((p) => ({ ...p, [field]: value }));
     if (errors[field]) setErrors((p) => ({ ...p, [field]: undefined }));
@@ -55,9 +82,37 @@ const Home = () => {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validate()) setSubmitted(true);
+    if (!validate()) return;
+
+    setEnviando(true);
+
+    try {
+      const res = await fetch(`${API_URL}/api/agendamentos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome: form.nome,
+          setor_id: form.setor,
+          assunto: form.assunto,
+          sala: form.sala,
+          data: form.data,
+          hora_inicio: form.hora_inicio,
+          hora_fim: form.hora_fim,
+          observacoes: form.observacoes,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Falha ao salvar agendamento");
+
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+      setErrors((p) => ({ ...p, geral: "Não foi possível confirmar a reserva. Tente novamente." }));
+    } finally {
+      setEnviando(false);
+    }
   };
 
   const handleReset = () => {
@@ -99,9 +154,15 @@ const Home = () => {
                   <p className={styles.cardLabel}>Responsável</p>
                   <InputField label="Nome completo" icon={User} value={form.nome}
                     onChange={set("nome")} placeholder="Ex: Ana Beatriz Silva" error={errors.nome} />
-                  <SelectField label="Setor" icon={Tag} value={form.setor} onChange={set("setor")}
-                    options={SETORES.map((s) => ({ value: s, label: s }))}
-                    placeholder="Selecione o setor" error={errors.setor} />
+                  <SelectField
+                    label="Setor"
+                    icon={Tag}
+                    value={form.setor}
+                    onChange={set("setor")}
+                    options={setores.map((s) => ({ value: s.id, label: s.nome }))}
+                    placeholder={carregandoSetores ? "Carregando..." : "Selecione o setor"}
+                    error={errors.setor}
+                  />
                 </div>
 
                 {/* Tipo de evento */}
@@ -211,14 +272,20 @@ const Home = () => {
                   </div>
                 </div>
 
+                {errors.geral && (
+                  <p className={styles.errorText}>
+                    <AlertCircle size={11} /> {errors.geral}
+                  </p>
+                )}
+
                 {/* Submit */}
                 <div className={styles.submitRow}>
                   <p className={styles.capacityText}>
                     {selectedSala ? `Capacidade: ${selectedSala.capacity} pessoas` : "Selecione uma sala"}
                   </p>
-                  <button type="submit" className={styles.submitButton}>
+                  <button type="submit" className={styles.submitButton} disabled={enviando}>
                     <CheckCircle2 size={15} />
-                    Confirmar reserva
+                    {enviando ? "Enviando..." : "Confirmar reserva"}
                   </button>
                 </div>
 
