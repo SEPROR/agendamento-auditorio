@@ -37,6 +37,16 @@ app.get('/api/setores', async (req, res) => {
   }
 });
 
+app.get('/api/tipo', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, tipo FROM tipos_evento ORDER BY tipo');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro ao buscar assunto do evento' });
+  }
+});
+
 
 app.post('/api/usuarios', async (req, res) => {
   const { nome, setor_id } = req.body;
