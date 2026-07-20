@@ -5,11 +5,11 @@
 }
 
 .label {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: #6b8ab0;
+  
 }
 
 .inputContainer {
