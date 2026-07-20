@@ -90,11 +90,11 @@
 }
 
 .cardLabel {
-  font-family: monospace;
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
   text-transform: uppercase;
-  color: #3b82f6;
+  color: #3173dd;
+  font-weight: 600;
   
 }
 
@@ -153,8 +153,8 @@
 }
 
 .calendarHeaderLabel {
-  font-family: monospace;
-  font-size: 9px;
+  font-size: 10px;
+  font-weight: 600;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: #3b82f6;
@@ -254,9 +254,8 @@
 }
 
 .textareaLabel {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: #6b8ab0;
 }
