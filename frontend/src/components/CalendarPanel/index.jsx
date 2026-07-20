@@ -19,6 +19,7 @@ export function CalendarPanel({ selectedDate, onSelectDate, selectedSlot, onSele
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+// cursor guarda o mês/ano atual exibido no calendário
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return { year: d.getFullYear(), month: d.getMonth() };
@@ -47,13 +48,13 @@ export function CalendarPanel({ selectedDate, onSelectDate, selectedSlot, onSele
     return { year: y, month: m };
   });
 
-  const canGoPrev  = new Date(year, month, 1) > today;
+  const canGoPrev  = new Date(year, month, 1) > today; 
   const hours      = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
   const selDayDate = selectedDate ? new Date(selectedDate + "T00:00:00") : null;
 
   return (
     <div className={styles.container}>
-      {/* Nav */}
+      {/* Nav botões que permitem avançar ou voltar de mês*/}
       <div className={styles.navRow}>
         <button type="button" onClick={prevMonth} disabled={!canGoPrev} className={styles.navButton}>
           <ChevronLeft size={16} className={styles.navIcon} />
@@ -64,7 +65,7 @@ export function CalendarPanel({ selectedDate, onSelectDate, selectedSlot, onSele
         </button>
       </div>
 
-      {/* Aviso Hall */}
+      {/* Aviso do Hall */}
       {isHall && (
         <div className={styles.hallWarning}>
           <Info size={13} className={styles.hallWarningIcon} />
@@ -75,7 +76,7 @@ export function CalendarPanel({ selectedDate, onSelectDate, selectedSlot, onSele
         </div>
       )}
 
-      {/* Cabeçalho dias */}
+      {/* Cabeçalho de dias */}
       <div className={styles.weekHeader}>
         {PT_DAYS.map((d) => (
           <div key={d} className={styles.weekHeaderCell}>

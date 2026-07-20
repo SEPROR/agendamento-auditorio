@@ -13,9 +13,35 @@ export function isWeekend(date) {
   return day === 0 || day === 6;
 }
 
+// export function isHallAllowed(date) {
+//   const day = date.getDate();
+//   return day >= 28 || day <= 16;
+// }
+
 export function isHallAllowed(date) {
-  const day = date.getDate();
-  return day >= 28 || day <= 16;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Determina o mês/ano de referência da janela (o mês do "dia 28" que a inicia).
+  // Se hoje ainda não passou do dia 17, a janela vigente começou no mês anterior.
+  let startYear  = today.getFullYear();
+  let startMonth = today.getMonth();
+
+  if (today.getDate() < 17) {
+    startMonth -= 1;
+    if (startMonth < 0) {
+      startMonth = 11;
+      startYear -= 1;
+    }
+  }
+
+  const windowStart = new Date(startYear, startMonth, 28);
+  const windowEnd   = new Date(startYear, startMonth + 1, 16); // JS ajusta o overflow de mês automaticamente
+
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+
+  return d >= windowStart && d <= windowEnd;
 }
 
 export function toMinutes(t) {
