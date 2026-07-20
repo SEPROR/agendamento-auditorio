@@ -20,7 +20,7 @@ const Header = () => {
           <div className={styles.brandBlock}>
             <span className={styles.brandName}>
               <span className={styles.brandThin}>Auditório</span>
-              <span className={styles.brandBold}>Hub</span>
+              <span className={styles.brandBold}>Sepror</span>
             </span>
             {/* <span className={styles.brandSub}>AUDITÓRIO PRINCIPAL</span> */}
           </div>

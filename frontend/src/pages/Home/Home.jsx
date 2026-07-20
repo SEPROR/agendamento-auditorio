@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Calendar, User, Tag, CheckCircle2, AlertCircle, Info } from "lucide-react";
 import { SETORES, ASSUNTOS, SALAS } from "../../constants.js";
 import Header from "../../components/Header";
+import Footer from "../../components/Footer";
 import SelectField from "../../components/SelectField";
 import InputField from "../../components/InputField";
 import SalaCard from "../../components/SalaCard";
@@ -227,6 +228,8 @@ const Home = () => {
           </div>
         </main>
       )}
+              <Footer />
+
     </div>
   );
 };
