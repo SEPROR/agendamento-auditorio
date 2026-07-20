@@ -26,7 +26,9 @@ const Home = () => {
 
   // Setores vindos do backend
   const [setores, setSetores] = useState([]);
+  const [tipo, setTipo] = useState([]);
   const [carregandoSetores, setCarregandoSetores] = useState(true);
+  const [carregandoTipo, setCarregandoTipo] = useState(true);
 
   useEffect(() => {
   async function fetchSetores() {
@@ -47,6 +49,27 @@ const Home = () => {
     }
   }
   fetchSetores();
+}, []);
+
+useEffect(() => {
+  async function fetchTipo() {
+    try {
+      const res = await fetch(`${API_URL}/api/tipo`);
+
+      if (!res.ok) {
+        throw new Error(`Erro ao buscar Tipo: ${res.status}`);
+      }
+
+      const data = await res.json();
+      setTipo(data);
+    } catch (err) {
+      console.error("Erro ao buscar tipo:", err);
+      setTipo([]); // garante que fica um array vazio, evitando o crash do .map
+    } finally {
+      setCarregandoTipo(false);
+    }
+  }
+  fetchTipo();
 }, []);
   const set = (field) => (value) => {
     setForm((p) => ({ ...p, [field]: value }));
@@ -170,8 +193,14 @@ const Home = () => {
                 <div className={styles.card}>
                   <p className={styles.cardLabel}>Tipo de evento</p>
                   <SelectField label="Assunto / finalidade" icon={Tag} value={form.assunto}
-                    onChange={set("assunto")} options={ASSUNTOS}
-                    placeholder="Selecione o tipo de evento" error={errors.assunto} />
+                    label="Assunto / finalidade"
+                   icon={Tag}
+                  value={form.assunto}
+                  onChange={set("assunto")}
+                  options={tipo.map((t) => ({ value: t.id, label: t.tipo }))}
+                  placeholder={carregandoTipo ? "Carregando..." : "Selecione o tipo de evento"}
+                  error={errors.assunto}
+                    />
                 </div>
 
                 {/* Salas */}
