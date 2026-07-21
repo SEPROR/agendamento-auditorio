@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Calendar, User, Tag, CheckCircle2, AlertCircle, Info } from "lucide-react";
-import { ASSUNTOS, SALAS } from "../../constants.js";
+import { ASSUNTOS } from "../../constants.js";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import SelectField from "../../components/SelectField";
@@ -24,53 +24,103 @@ const Home = () => {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [enviando, setEnviando]   = useState(false);
 
-  // Setores vindos do backend
+  // Dados vindos do backend
   const [setores, setSetores] = useState([]);
   const [tipo, setTipo] = useState([]);
+  const [salas, setSalas] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [carregandoSetores, setCarregandoSetores] = useState(true);
   const [carregandoTipo, setCarregandoTipo] = useState(true);
+  const [carregandoSalas, setCarregandoSalas] = useState(true);
 
   useEffect(() => {
-  async function fetchSetores() {
-    try {
-      const res = await fetch(`${API_URL}/api/setores`);
+    async function fetchSetores() {
+      try {
+        const res = await fetch(`${API_URL}/api/setores`);
 
-      if (!res.ok) {
-        throw new Error(`Erro ao buscar setores: ${res.status}`);
+        if (!res.ok) {
+          throw new Error(`Erro ao buscar setores: ${res.status}`);
+        }
+
+        const data = await res.json();
+        setSetores(data);
+      } catch (err) {
+        console.error("Erro ao buscar setores:", err);
+        setSetores([]); // garante que fica um array vazio, evitando o crash do .map
+      } finally {
+        setCarregandoSetores(false);
       }
-
-      const data = await res.json();
-      setSetores(data);
-    } catch (err) {
-      console.error("Erro ao buscar setores:", err);
-      setSetores([]); // garante que fica um array vazio, evitando o crash do .map
-    } finally {
-      setCarregandoSetores(false);
     }
-  }
-  fetchSetores();
-}, []);
+    fetchSetores();
+  }, []);
 
-useEffect(() => {
-  async function fetchTipo() {
-    try {
-      const res = await fetch(`${API_URL}/api/tipo`);
+  useEffect(() => {
+    async function fetchTipo() {
+      try {
+        const res = await fetch(`${API_URL}/api/tipo`);
 
-      if (!res.ok) {
-        throw new Error(`Erro ao buscar Tipo: ${res.status}`);
+        if (!res.ok) {
+          throw new Error(`Erro ao buscar Tipo: ${res.status}`);
+        }
+
+        const data = await res.json();
+        setTipo(data);
+      } catch (err) {
+        console.error("Erro ao buscar tipo:", err);
+        setTipo([]); // garante que fica um array vazio, evitando o crash do .map
+      } finally {
+        setCarregandoTipo(false);
       }
-
-      const data = await res.json();
-      setTipo(data);
-    } catch (err) {
-      console.error("Erro ao buscar tipo:", err);
-      setTipo([]); // garante que fica um array vazio, evitando o crash do .map
-    } finally {
-      setCarregandoTipo(false);
     }
-  }
-  fetchTipo();
-}, []);
+    fetchTipo();
+  }, []);
+
+  useEffect(() => {
+    async function fetchSalas() {
+      try {
+        const res = await fetch(`${API_URL}/api/salas`);
+
+        if (!res.ok) {
+          throw new Error(`Erro ao buscar salas: ${res.status}`);
+        }
+
+        const data = await res.json();
+        setSalas(data);
+      } catch (err) {
+        console.error("Erro ao buscar salas:", err);
+        setSalas([]); // garante que fica um array vazio, evitando o crash do .map
+      } finally {
+        setCarregandoSalas(false);
+      }
+    }
+    fetchSalas();
+  }, []);
+
+  // Busca os agendamentos da sala selecionada, para popular o calendário
+  useEffect(() => {
+    if (!form.sala) {
+      setBookings([]);
+      return;
+    }
+
+    async function fetchBookings() {
+      try {
+        const res = await fetch(`${API_URL}/api/agendamentos?sala_id=${form.sala}`);
+
+        if (!res.ok) {
+          throw new Error(`Erro ao buscar agendamentos: ${res.status}`);
+        }
+
+        const data = await res.json();
+        setBookings(data);
+      } catch (err) {
+        console.error("Erro ao buscar agendamentos:", err);
+        setBookings([]);
+      }
+    }
+    fetchBookings();
+  }, [form.sala]);
+
   const set = (field) => (value) => {
     setForm((p) => ({ ...p, [field]: value }));
     if (errors[field]) setErrors((p) => ({ ...p, [field]: undefined }));
@@ -131,6 +181,16 @@ useEffect(() => {
       if (!res.ok) throw new Error("Falha ao salvar agendamento");
 
       setSubmitted(true);
+
+      // Atualiza a lista de agendamentos da sala, refletindo a nova reserva
+      try {
+        const refreshed = await fetch(`${API_URL}/api/agendamentos?sala_id=${form.sala}`);
+        if (refreshed.ok) {
+          setBookings(await refreshed.json());
+        }
+      } catch (refreshErr) {
+        console.error("Erro ao atualizar agendamentos após envio:", refreshErr);
+      }
     } catch (err) {
       console.error(err);
       setErrors((p) => ({ ...p, geral: "Não foi possível confirmar a reserva. Tente novamente." }));
@@ -146,8 +206,8 @@ useEffect(() => {
     setSubmitted(false);
   };
 
-  const isHall       = form.sala === "hall";
-  const selectedSala = SALAS.find((s) => s.id === form.sala);
+  const selectedSala = salas.find((s) => s.id === form.sala);
+  const isHall        = selectedSala?.nome === "Hall";
 
   return (
     <div className={styles.page}>
@@ -207,7 +267,7 @@ useEffect(() => {
                 <div className={`${styles.card} ${styles.cardTight}`}>
                   <p className={styles.cardLabel}>Sala</p>
                   <div className={styles.salasGrid}>
-                    {SALAS.map((sala) => (
+                    {salas.map((sala) => (
                       <SalaCard key={sala.id} sala={sala}
                         selected={form.sala === sala.id}
                         onSelect={() => handleSelectSala(sala.id)} />
@@ -231,7 +291,7 @@ useEffect(() => {
                       Selecione data e horário
                       {selectedSala && (
                         <span className={styles.calendarTitleSala}>
-                          — {selectedSala.name}
+                          — {selectedSala.nome}
                         </span>
                       )}
                     </p>
@@ -271,6 +331,7 @@ useEffect(() => {
                     selectedSlot={selectedSlot}
                     onSelectSlot={handleSelectSlot}
                     isHall={isHall}
+                    bookings={bookings}
                   />
 
                   {errors.data && (
@@ -311,7 +372,7 @@ useEffect(() => {
                 {/* Submit */}
                 <div className={styles.submitRow}>
                   <p className={styles.capacityText}>
-                    {selectedSala ? `Capacidade: ${selectedSala.capacity} pessoas` : "Selecione uma sala"}
+                    {selectedSala ? `Capacidade: ${selectedSala.capacidade} pessoas` : "Selecione uma sala"}
                   </p>
                   <button type="submit" className={styles.submitButton} disabled={enviando}>
                     <CheckCircle2 size={15} />

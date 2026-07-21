@@ -14,9 +14,9 @@ export function SalaCard({ sala, selected, onSelect }) {
         </span>
       )}
       <Building2 size={18} className={selected ? styles.buildingIconSelected : styles.buildingIcon} />
-      <span className={styles.name}>{sala.name}</span>
+      <span className={styles.name}>{sala.nome}</span>
       <span className={styles.capacity}>
-        <Users size={10} /> {sala.capacity} pessoas
+        <Users size={10} /> {sala.capacidade} pessoas
       </span>
       {sala.hallOnly && (
         <span className={styles.hallBadge}>
