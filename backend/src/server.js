@@ -5,12 +5,6 @@ import { Pool } from 'pg';
 
 dotenv.config();
 
-dotenv.config();
-console.log('DB_USER:', JSON.stringify(process.env.DB_USER));
-console.log('DB_PASSWORD:', JSON.stringify(process.env.DB_PASSWORD));
-console.log('DB_HOST:', JSON.stringify(process.env.DB_HOST));
-console.log('DB_PORT:', JSON.stringify(process.env.DB_PORT));
-
 
 const app = express();
 app.use(cors());
@@ -46,6 +40,60 @@ app.get('/api/tipo', async (req, res) => {
     res.status(500).json({ erro: 'Erro ao buscar assunto do evento' });
   }
 });
+
+app.get('/api/salas', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, nome, finalidade, capacidade FROM salas ORDER BY nome');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro ao buscar sala correspondente' });
+  }
+});
+
+app.get('/api/agendamentos', async (req, res) => {
+  try {
+    const { sala_id } = req.query;
+
+    let query = `
+      SELECT 
+        u.nome AS nome,
+        t.tipo AS assunto,
+        to_char(a.data, 'YYYY-MM-DD') AS date,
+        to_char(a.hora_inicio, 'HH24:MI') AS inicio,
+        to_char(a.hora_fim, 'HH24:MI') AS fim
+      FROM agendamentos a
+      JOIN usuarios u ON u.id = a.usuario_id
+      JOIN tipos_evento t ON t.id = a.tipo_evento_id
+    `;
+
+    const params = [];
+    if (sala_id) {
+      query += ' WHERE a.sala_id = $1';
+      params.push(sala_id);
+    }
+    query += ' ORDER BY a.data, a.hora_inicio';
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro ao buscar agendamentos' });
+  }
+});
+
+app.get('/api/', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, tipo FROM tipos_evento ORDER BY tipo');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro ao buscar assunto do evento' });
+  }
+});
+
+
+
 
 
 app.post('/api/usuarios', async (req, res) => {
