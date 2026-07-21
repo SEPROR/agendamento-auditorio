@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Info, CheckCircle2 } from "lucide-react";
-import { BOOKINGS } from "../../booking.js";
 import { HOUR_START, HOUR_END, PT_MONTHS, PT_DAYS } from "../../constants";
 import {
   fmt, isWeekend, isHallAllowed,
@@ -15,7 +14,7 @@ const LEGEND_ITEMS = [
   { dotClass: "dotSelected", label: "Selecionado" },
 ];
 
-export function CalendarPanel({ selectedDate, onSelectDate, selectedSlot, onSelectSlot, isHall }) {
+export function CalendarPanel({ selectedDate, onSelectDate, selectedSlot, onSelectSlot, isHall, bookings = [] }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -95,8 +94,8 @@ export function CalendarPanel({ selectedDate, onSelectDate, selectedSlot, onSele
           const isWknd      = isWeekend(date);
           const hallBlocked = isHall && !isHallAllowed(date);
           const disabled    = isPast || isWknd || hallBlocked;
-          const isFull      = isDayFullyBooked(BOOKINGS, dateStr);
-          const hasSome     = hasAnyBooking(BOOKINGS, dateStr);
+          const isFull      = isDayFullyBooked(bookings, dateStr);
+          const hasSome     = hasAnyBooking(bookings, dateStr);
           const isSelected  = dateStr === selectedDate;
           const isToday     = fmt(date) === fmt(today);
 
@@ -158,8 +157,8 @@ export function CalendarPanel({ selectedDate, onSelectDate, selectedSlot, onSele
           </p>
           <div className={styles.slotsList}>
             {hours.map((h) => {
-              const booked  = isSlotBooked(BOOKINGS, selectedDate, h);
-              const booking = getBookingForSlot(BOOKINGS, selectedDate, h);
+              const booked  = isSlotBooked(bookings, selectedDate, h);
+              const booking = getBookingForSlot(bookings, selectedDate, h);
               const slotIni = `${pad(h)}:00`;
               const slotFim = `${pad(h + 1)}:00`;
               const isSel   = selectedSlot?.inicio === slotIni && selectedSlot?.fim === slotFim;
