@@ -10,7 +10,7 @@ import CalendarPanel from "../../components/CalendarPanel";
 import SuccessScreen from "../../components/SuccessScreen";
 import styles from "./index.module.css";
 
-const API_URL = "http://localhost:3000"; // ajuste se seu backend estiver em outra porta/host
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5173';
 
 const EMPTY_FORM = {
   nome: "", setor: "", assunto: "", sala: "",
@@ -156,11 +156,12 @@ const Home = () => {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
     setEnviando(true);
+    setErrors((p) => ({ ...p, geral: undefined }));
 
     try {
       const res = await fetch(`${API_URL}/api/agendamentos`, {
@@ -178,8 +179,12 @@ const Home = () => {
         }),
       });
 
-      if (!res.ok) throw new Error("Falha ao salvar agendamento");
+      if (!res.ok) {
+        const erroBody = await res.json().catch(() => null);
+        throw new Error(erroBody?.erro || "Falha ao salvar agendamento");
+      }
 
+      // sucesso
       setSubmitted(true);
 
       // Atualiza a lista de agendamentos da sala, refletindo a nova reserva
@@ -193,7 +198,7 @@ const Home = () => {
       }
     } catch (err) {
       console.error(err);
-      setErrors((p) => ({ ...p, geral: "Não foi possível confirmar a reserva. Tente novamente." }));
+      setErrors((p) => ({ ...p, geral: err.message || "Não foi possível confirmar a reserva. Tente novamente." }));
     } finally {
       setEnviando(false);
     }
