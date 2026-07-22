@@ -5,19 +5,21 @@ import { Pool } from 'pg';
 
 dotenv.config();
 
-
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
 
+app.use(express.json());
 
 // Configuração do banco de dados
 const pool = new Pool({
-  user: process.env.DB_USER ,
-  host: process.env.DB_HOST ,
-  database: process.env.DB_NAME ,
-  password: process.env.DB_PASSWORD ,
-  port: process.env.DB_PORT ,
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
   ssl: { rejectUnauthorized: false },
 });
 
@@ -82,19 +84,71 @@ app.get('/api/agendamentos', async (req, res) => {
   }
 });
 
-app.get('/api/', async (req, res) => {
+
+app.post('/api/agendamentos', async (req, res) => {
+  const client = await pool.connect();
   try {
-    const result = await pool.query('SELECT id, tipo FROM tipos_evento ORDER BY tipo');
-    res.json(result.rows);
+    const {
+      nome,
+      setor_id,
+      assunto,
+      sala,
+      data,
+      hora_inicio,
+      hora_fim,
+      observacoes,
+    } = req.body;
+
+    // Validação básica
+    if (!nome || !setor_id || !assunto || !sala || !data || !hora_inicio || !hora_fim) {
+      return res.status(400).json({ erro: 'Campos obrigatórios faltando' });
+    }
+
+    await client.query('BEGIN');
+
+    // 1. Busca o usuário pelo nome; se não existir, cria
+    let usuarioResult = await client.query(
+      'SELECT id FROM usuarios WHERE nome = $1',
+      [nome]
+    );
+
+    let usuario_id;
+    if (usuarioResult.rows.length > 0) {
+      usuario_id = usuarioResult.rows[0].id;
+    } else {
+      const novoUsuario = await client.query(
+        'INSERT INTO usuarios (nome, setor_id) VALUES ($1, $2) RETURNING id',
+        [nome, setor_id]
+      );
+      usuario_id = novoUsuario.rows[0].id;
+    }
+
+    // 2. "assunto" já vem do frontend como o ID numérico do tipo de evento
+    // (o <select> envia t.id, não t.tipo), então usamos ele direto.
+    const tipo_evento_id = assunto;
+
+    // 3. Insere o agendamento
+    // "sala" já vem como ID numérico da sala (o <select>/SalaCard usa sala.id).
+    const insertQuery = `
+      INSERT INTO agendamentos 
+        (usuario_id, tipo_evento_id, sala_id, data, hora_inicio, hora_fim, observacoes)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `;
+    const params = [usuario_id, tipo_evento_id, sala, data, hora_inicio, hora_fim, observacoes];
+
+    const result = await client.query(insertQuery, params);
+
+    await client.query('COMMIT');
+    res.status(201).json(result.rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err);
-    res.status(500).json({ erro: 'Erro ao buscar assunto do evento' });
+    res.status(500).json({ erro: 'Erro ao criar agendamento' });
+  } finally {
+    client.release();
   }
 });
-
-
-
-
 
 app.post('/api/usuarios', async (req, res) => {
   const { nome, setor_id } = req.body;
@@ -115,9 +169,7 @@ app.post('/api/usuarios', async (req, res) => {
   }
 });
 
-app.get('/api/auditorios', (req, res) => {
-  res.json([{ id: 1, nome: 'Auditório Principal' }]);
-});
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Backend rodando na porta ${PORT}`));
