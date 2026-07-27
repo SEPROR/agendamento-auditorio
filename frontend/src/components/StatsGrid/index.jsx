@@ -1,24 +1,24 @@
 import styles from './index.module.css';
 
 export function StatsGrid({ filtrados, totalGeral }) {
-  const motoristasUnicos = new Set(
-    filtrados.map((s) => s.motorista).filter((m) => m && m !== '—')
+  const salasUnicas = new Set(
+    filtrados.map((a) => a.sala).filter((s) => s && s !== '—')
   ).size;
 
   const setoresUnicos = new Set(
-    filtrados.map((s) => s.setor).filter((s) => s && s !== '—')
+    filtrados.map((a) => a.setor).filter((s) => s && s !== '—')
   ).size;
 
   const items = [
     {
-      label: filtrados[0]?.status || 'Status',
+      label: 'Agendamentos',
       value: filtrados.length,
       sub: `de ${totalGeral} total`,
       color: styles.green
     },
     {
-      label: 'Motoristas Envolvidos',
-      value: motoristasUnicos,
+      label: 'Salas Utilizadas',
+      value: salasUnicas,
       sub: 'no filtro atual',
       color: styles.amber
     },
