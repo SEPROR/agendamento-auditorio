@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import Header from "../../components/Header";
 import StatsGrid from "../../components/StatsGrid";
 import HistoricoFilters from "../../components/HistoricoFilters";
 import HistoricoTable from "../../components/HistoricoTable";
@@ -192,6 +193,8 @@ export default function Relatorio() {
   );
 
   return (
+    <div>
+      <Header/>
     <main id="principal" className={styles.container}>
       <div className={styles.pageTitleRow}>
         <div>
@@ -261,5 +264,6 @@ export default function Relatorio() {
         onExportarPDF={handleExportarPdfModal}
       />
     </main>
+    </div>
   );
 }
