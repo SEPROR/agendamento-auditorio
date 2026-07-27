@@ -1,0 +1,118 @@
+.card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.filtersHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.filtersHeaderLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.btnGhost {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.btnGhost:hover {
+  color: #dc2626;
+}
+
+.filtersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.filterField {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.icon {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.chevron {
+  position: absolute;
+  right: 12px;
+  width: 14px;
+  height: 14px;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.input,
+.select {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 9px 12px 9px 38px;
+  font-size: 14px;
+  color: #1f2937;
+  outline: none;
+  background: #ffffff;
+  appearance: none;
+}
+
+.select {
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+.input:focus,
+.select:focus {
+  border-color: #2196a6;
+}
+
+.chipsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eff6ff;
+  color: #1e40af;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 999px;
+}
+
+.chip button {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}

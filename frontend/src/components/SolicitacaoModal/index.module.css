@@ -1,0 +1,381 @@
+/* index.module.css */
+
+.modalOverlay {
+position: fixed;
+inset: 0;
+z-index: 1000;
+
+display: flex;
+align-items: center;
+justify-content: center;
+
+padding: 24px;
+
+background: rgba(15, 23, 42, 0.55);
+backdrop-filter: blur(4px);
+
+opacity: 0;
+visibility: hidden;
+pointer-events: none;
+
+transition:
+opacity 0.25s ease,
+visibility 0.25s ease;
+}
+
+.modalOverlay.open {
+opacity: 1;
+visibility: visible;
+pointer-events: auto;
+}
+
+.modal {
+width: 100%;
+max-width: 720px;
+max-height: calc(100vh - 48px);
+
+display: flex;
+flex-direction: column;
+
+overflow: hidden;
+
+background: #ffffff;
+border: 1px solid #e2e8f0;
+border-radius: 18px;
+
+box-shadow:
+0 25px 50px -12px rgba(15, 23, 42, 0.25),
+0 8px 24px rgba(15, 23, 42, 0.08);
+
+transform: translateY(16px) scale(0.98);
+
+transition: transform 0.25s ease;
+}
+
+.modalOverlay.open .modal {
+transform: translateY(0) scale(1);
+}
+
+/* Cabeçalho */
+
+.modalHead {
+display: flex;
+align-items: flex-start;
+justify-content: space-between;
+gap: 20px;
+
+padding: 26px 28px 22px;
+
+border-bottom: 1px solid #e2e8f0;
+}
+
+.overline {
+margin-bottom: 6px;
+
+color: #64748b;
+
+font-size: 12px;
+font-weight: 700;
+letter-spacing: 0.08em;
+text-transform: uppercase;
+}
+
+.modalTitle {
+margin: 0;
+
+color: #0f172a;
+
+font-size: 24px;
+font-weight: 700;
+line-height: 1.25;
+}
+
+.modalClose {
+display: flex;
+align-items: center;
+justify-content: center;
+
+width: 36px;
+height: 36px;
+flex-shrink: 0;
+
+color: #64748b;
+
+background: transparent;
+border: 0;
+border-radius: 8px;
+
+cursor: pointer;
+
+transition:
+color 0.2s ease,
+background 0.2s ease;
+}
+
+.modalClose:hover {
+color: #0f172a;
+background: #f1f5f9;
+}
+
+.modalClose:focus-visible {
+outline: 3px solid rgba(59, 130, 246, 0.25);
+outline-offset: 2px;
+}
+
+/* Corpo */
+
+.modalBody {
+padding: 26px 28px;
+
+overflow-y: auto;
+}
+
+/* Badge */
+
+.badge {
+display: inline-flex;
+align-items: center;
+
+width: fit-content;
+
+margin-bottom: 24px;
+padding: 6px 12px;
+
+border-radius: 999px;
+
+font-size: 12px;
+font-weight: 700;
+line-height: 1;
+
+text-transform: capitalize;
+}
+
+.badgeGreen {
+color: #166534;
+background: #dcfce7;
+}
+
+.badgeYellow {
+color: #854d0e;
+background: #fef9c3;
+}
+
+.badgeRed {
+color: #991b1b;
+background: #fee2e2;
+}
+
+.badgeAmber {
+color: #92400e;
+background: #fef3c7;
+}
+
+/* Grid de informações */
+
+.modalGrid {
+display: grid;
+grid-template-columns: repeat(2, minmax(0, 1fr));
+gap: 18px 24px;
+}
+
+.modalField {
+min-width: 0;
+padding-bottom: 14px;
+
+border-bottom: 1px solid #f1f5f9;
+}
+
+.modalFieldLabel {
+margin-bottom: 6px;
+
+color: #64748b;
+
+font-size: 11px;
+font-weight: 700;
+letter-spacing: 0.06em;
+text-transform: uppercase;
+}
+
+.modalFieldValue {
+overflow-wrap: anywhere;
+
+color: #1e293b;
+
+font-size: 15px;
+font-weight: 500;
+line-height: 1.5;
+}
+
+/* Ocorrência / Observações */
+
+.kmBox {
+display: flex;
+align-items: flex-start;
+gap: 14px;
+
+margin-top: 24px;
+padding: 18px;
+
+background: #f8fafc;
+border: 1px solid #e2e8f0;
+border-radius: 12px;
+}
+
+.kmIcon {
+flex-shrink: 0;
+margin-top: 2px;
+
+color: #64748b;
+}
+
+.kmLabel {
+margin-bottom: 6px;
+
+color: #64748b;
+
+font-size: 11px;
+font-weight: 700;
+letter-spacing: 0.06em;
+text-transform: uppercase;
+}
+
+.kmValue {
+color: #334155;
+
+font-size: 14px;
+line-height: 1.6;
+white-space: pre-wrap;
+}
+
+/* Rodapé */
+
+.modalFooter {
+display: flex;
+align-items: center;
+justify-content: flex-end;
+gap: 12px;
+
+padding: 18px 28px;
+
+border-top: 1px solid #e2e8f0;
+background: #ffffff;
+}
+
+.btnOutline,
+.btnPrimary {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+
+min-height: 40px;
+padding: 0 16px;
+
+border-radius: 8px;
+
+font-size: 14px;
+font-weight: 600;
+
+cursor: pointer;
+
+transition:
+background 0.2s ease,
+border-color 0.2s ease,
+color 0.2s ease,
+transform 0.2s ease;
+}
+
+.btnOutline {
+color: #334155;
+
+background: #ffffff;
+border: 1px solid #cbd5e1;
+}
+
+.btnOutline:hover {
+color: #0f172a;
+background: #f8fafc;
+border-color: #94a3b8;
+}
+
+.btnPrimary {
+color: #ffffff;
+
+background: #2563eb;
+border: 1px solid #2563eb;
+}
+
+.btnPrimary:hover {
+background: #1d4ed8;
+border-color: #1d4ed8;
+}
+
+.btnOutline:active,
+.btnPrimary:active {
+transform: translateY(1px);
+}
+
+.btnOutline:focus-visible,
+.btnPrimary:focus-visible {
+outline: 3px solid rgba(37, 99, 235, 0.25);
+outline-offset: 2px;
+}
+
+/* Responsividade */
+
+@media (max-width: 640px) {
+.modalOverlay {
+align-items: flex-end;
+padding: 0;
+}
+
+.modal {
+max-height: 92vh;
+
+border-radius: 18px 18px 0 0;
+
+transform: translateY(100%);
+
+}
+
+.modalOverlay.open .modal {
+transform: translateY(0);
+}
+
+.modalHead {
+padding: 22px 20px 18px;
+}
+
+.modalBody {
+padding: 22px 20px;
+}
+
+.modalTitle {
+font-size: 20px;
+}
+
+.modalGrid {
+grid-template-columns: 1fr;
+gap: 14px;
+}
+
+.modalFooter {
+padding: 16px 20px;
+}
+
+.btnOutline,
+.btnPrimary {
+flex: 1;
+}
+}
+
+@media (max-width: 420px) {
+.modalFooter {
+flex-direction: column-reverse;
+}
+
+.btnOutline,
+.btnPrimary {
+width: 100%;
+}
+}
