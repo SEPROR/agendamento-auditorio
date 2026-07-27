@@ -214,6 +214,9 @@ const Home = () => {
   const selectedSala = salas.find((s) => s.id === form.sala);
   const isHall        = selectedSala?.nome === "Hall";
 
+
+
+  
   return (
     <div className={styles.page}>
       <Header />

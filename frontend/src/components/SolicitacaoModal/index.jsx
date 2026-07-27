@@ -1,33 +1,16 @@
 import styles from './index.module.css';
 
-const BADGE_CLASSES = {
-  fechado: styles.badgeGreen,
-  em_andamento: styles.badgeYellow,
-  aberto: styles.badgeRed
-};
-
-function Badge({ status }) {
-  const cls = BADGE_CLASSES[status] || styles.badgeAmber;
-  return <span className={`${styles.badge} ${cls}`}>{status}</span>;
-}
-
 export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF }) {
   if (!solicitacao) return null;
 
   const campos = [
     ['Solicitante', solicitacao.solicitante],
     ['Setor', solicitacao.setor],
-    ['Destino', solicitacao.destino],
-    ['Motorista', solicitacao.motorista],
-    ['Data de Saída', solicitacao.dataPartida],
-    ['Hora de Saída', solicitacao.horaPartida],
-    ['Aberta em', solicitacao.abertaEm],
-    ['Encerrada em', solicitacao.fechadaEm]
+    ['Sala', solicitacao.sala],
+    ['Assunto', solicitacao.assunto],
+    ['Data', solicitacao.data],
+    ['Horário', `${solicitacao.horaInicio} – ${solicitacao.horaFim}`],
   ];
-
-  if (solicitacao.motoristaAnterior) {
-    campos.push(['Redirecionada de', solicitacao.motoristaAnterior]);
-  }
 
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) onFechar();
@@ -38,7 +21,7 @@ export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF }) {
       <div className={styles.modal}>
         <div className={styles.modalHead}>
           <div>
-            <div className={styles.overline}>Solicitação #{solicitacao.id}</div>
+            <div className={styles.overline}>Agendamento #{solicitacao.id}</div>
             <h2 className={styles.modalTitle}>{solicitacao.solicitante}</h2>
           </div>
 
@@ -60,8 +43,6 @@ export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF }) {
         </div>
 
         <div className={styles.modalBody}>
-          <Badge status={solicitacao.status} />
-
           <div className={styles.modalGrid}>
             {campos.map(([label, valor]) => (
               <div key={label} className={styles.modalField}>
@@ -90,8 +71,8 @@ export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF }) {
             </svg>
 
             <div>
-              <div className={styles.kmLabel}>Ocorrência / Observações</div>
-              <div className={styles.kmValue}>{solicitacao.ocorrencia}</div>
+              <div className={styles.kmLabel}>Observações</div>
+              <div className={styles.kmValue}>{solicitacao.observacoes}</div>
             </div>
           </div>
         </div>

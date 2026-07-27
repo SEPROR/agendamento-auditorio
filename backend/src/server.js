@@ -169,6 +169,33 @@ app.post('/api/usuarios', async (req, res) => {
   }
 });
 
+app.get('/api/agendamentos/relatorio', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        a.id,
+        u.nome AS solicitante,
+        s.nome AS setor,
+        sa.nome AS sala,
+        t.tipo AS assunto,
+        to_char(a.data, 'YYYY-MM-DD') AS data,
+        to_char(a.hora_inicio, 'HH24:MI') AS hora_inicio,
+        to_char(a.hora_fim, 'HH24:MI') AS hora_fim,
+        a.observacoes
+      FROM agendamentos a
+      JOIN usuarios u ON u.id = a.usuario_id
+      JOIN setores s ON s.id = u.setor_id
+      JOIN salas sa ON sa.id = a.sala_id
+      JOIN tipos_evento t ON t.id = a.tipo_evento_id
+      ORDER BY a.data DESC, a.hora_inicio DESC
+    `;
+    const result = await pool.query(query);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro ao buscar relatório de agendamentos' });
+  }
+});
 
 
 const PORT = process.env.PORT || 3000;

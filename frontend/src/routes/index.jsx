@@ -1,13 +1,13 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from '../pages/Home/Home';
-// import Relatorio from '../pages/Relatorio/Relatorio';
+import Relatorio from '../pages/Relatorio/Relatorio';
 
 const AppRoutes = () => {
     return (
         <BrowserRouter>
             <Routes>
                 <Route path="/" element={<Home />} />
-                {/* <Route path="/relatorio" element={<Relatorio />} /> */}
+                <Route path="/agendamentos/relatorio" element={<Relatorio />} />
             </Routes>
         </BrowserRouter>
     )

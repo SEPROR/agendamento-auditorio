@@ -1,28 +1,29 @@
 import styles from './index.module.css';
 
-const TODOS_MOTORISTAS = 'Todos os Motoristas';
-const TODOS_STATUS = 'Todos os Status';
+const TODAS_SALAS = 'Todas as Salas';
+const TODOS_TIPOS = 'Todos os Tipos';
 const TODOS_PERIODOS = 'Todos os Períodos';
 
 export function HistoricoFilters({
   busca,
   onBuscaChange,
-  motorista,
-  onMotoristaChange,
-  status,
-  onStatusChange,
+  sala,
+  onSalaChange,
+  tipo,
+  onTipoChange,
   periodo,
   onPeriodoChange,
-  motoristasOptions,
+  salasOptions,
+  tiposOptions,
   periodosOptions,
   onLimpar
 }) {
   const chips = [];
-  if (motorista !== TODOS_MOTORISTAS) {
-    chips.push({ label: motorista, onRemover: () => onMotoristaChange(TODOS_MOTORISTAS) });
+  if (sala !== TODAS_SALAS) {
+    chips.push({ label: sala, onRemover: () => onSalaChange(TODAS_SALAS) });
   }
-  if (status !== TODOS_STATUS) {
-    chips.push({ label: status, onRemover: () => onStatusChange(TODOS_STATUS) });
+  if (tipo !== TODOS_TIPOS) {
+    chips.push({ label: tipo, onRemover: () => onTipoChange(TODOS_TIPOS) });
   }
   if (periodo !== TODOS_PERIODOS) {
     const periodoOpt = periodosOptions.find((p) => p.chave === periodo);
@@ -88,7 +89,7 @@ export function HistoricoFilters({
           </svg>
           <input
             type="text"
-            placeholder="Buscar solicitação..."
+            placeholder="Buscar agendamento..."
             value={busca}
             onChange={(e) => onBuscaChange(e.target.value)}
             className={styles.input}
@@ -105,16 +106,17 @@ export function HistoricoFilters({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
+            <path d="M3 21h18" />
+            <path d="M5 21V7l8-4v18" />
+            <path d="M19 21V11l-6-4" />
           </svg>
           <select
-            value={motorista}
-            onChange={(e) => onMotoristaChange(e.target.value)}
+            value={sala}
+            onChange={(e) => onSalaChange(e.target.value)}
             className={styles.select}
           >
-            <option>{TODOS_MOTORISTAS}</option>
-            {motoristasOptions.map((nome) => (
+            <option>{TODAS_SALAS}</option>
+            {salasOptions.map((nome) => (
               <option key={nome} value={nome}>{nome}</option>
             ))}
           </select>
@@ -141,17 +143,18 @@ export function HistoricoFilters({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <polyline points="20 6 9 17 4 12" />
+            <path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z" />
+            <line x1="7" y1="7" x2="7.01" y2="7" />
           </svg>
           <select
-            value={status}
-            onChange={(e) => onStatusChange(e.target.value)}
+            value={tipo}
+            onChange={(e) => onTipoChange(e.target.value)}
             className={styles.select}
           >
-            <option>{TODOS_STATUS}</option>
-            <option value="fechado">Fechadas</option>
-            <option value="em_andamento">Em andamento</option>
-            <option value="aberto">Abertas</option>
+            <option>{TODOS_TIPOS}</option>
+            {tiposOptions.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
           </select>
           <svg
             className={styles.chevron}
