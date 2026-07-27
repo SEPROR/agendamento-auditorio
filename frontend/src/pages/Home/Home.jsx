@@ -10,7 +10,7 @@ import CalendarPanel from "../../components/CalendarPanel";
 import SuccessScreen from "../../components/SuccessScreen";
 import styles from "./index.module.css";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5173';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const EMPTY_FORM = {
   nome: "", setor: "", assunto: "", sala: "",
