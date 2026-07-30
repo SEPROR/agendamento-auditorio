@@ -70,7 +70,7 @@ export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF }) {
               <line x1="16" y1="17" x2="8" y2="17" />
             </svg>
 
-            <div>
+            <div >
               <div className={styles.kmLabel}>Observações</div>
               <div className={styles.kmValue}>{solicitacao.observacoes}</div>
             </div>
