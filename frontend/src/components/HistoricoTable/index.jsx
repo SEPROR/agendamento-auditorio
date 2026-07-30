@@ -45,8 +45,7 @@ export function HistoricoTable({ estado, itens, tableCountLabel, onAbrirModal, o
               <tr
                 key={a.id}
                 onClick={() => onAbrirModal(a.id)}
-                style={i % 2 !== 0 ? { background: '#fbfcfd' } : undefined}
-              >
+                style={i % 2 !== 0 ? { background: '#161f2e' } : undefined}              >
                 <td className={styles.tdId}>#{a.id}</td>
                 <td style={{ fontWeight: 500 }}>{a.solicitante}</td>
                 <td className={styles.tdMuted}>{a.setor}</td>

@@ -2,6 +2,7 @@
   overflow-x: auto;
 }
 
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -13,17 +14,17 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #6b7280;
-  border-bottom: 1px solid #e5e7eb;
+  color: #94a3b8; /* era #6b7280 */
+  border-bottom: 1px solid #1f2937;
   padding: 10px 12px;
   white-space: nowrap;
 }
 
 .table td {
   font-size: 13px;
-  color: #1f2937;
+  color: #e5e7eb; /* era #1f2937 */
+  border-bottom: 1px solid #1f2937;
   padding: 10px 12px;
-  border-bottom: 1px solid #f1f5f9;
 }
 
 .table tr {
@@ -31,7 +32,7 @@
 }
 
 .table tr:hover td {
-  background: #f8fafc;
+  background: #1a2332; /* era #f8fafc */
 }
 
 .tdId {
@@ -40,7 +41,7 @@
 }
 
 .tdMuted {
-  color: #6b7280;
+  color: #94a3b8; /* era #6b7280 */
 }
 
 .tdTrunc {
@@ -60,7 +61,8 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #e0f2f4;
+  background: #111827;
+  border: 1px solid rgba(34,211,238,.15) ;
   color: #2196a6;
   font-size: 11px;
   font-weight: 700;
@@ -79,32 +81,12 @@
   text-transform: capitalize;
 }
 
-.badgeGreen {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.badgeYellow {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.badgeRed {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.badgeAmber {
-  background: #fef3c7;
-  color: #92400e;
-}
-
 .mobileCards {
   display: none;
 }
 
 .mobileCard {
-  border: 1px solid #e5e7eb;
+  border: 1px solid #1f2937; /* era #e5e7eb */
   border-radius: 10px;
   padding: 12px;
   margin-bottom: 10px;
@@ -127,27 +109,27 @@
 .mobileCardName {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: #e5e7eb; /* era #1f2937 */
 }
 
 .mobileCardMeta {
   margin-top: 8px;
   font-size: 12px;
-  color: #6b7280;
+  color: #94a3b8; /* era #6b7280 */
   line-height: 1.6;
 }
 
 .emptyState {
   text-align: center;
   padding: 48px 16px;
-  color: #6b7280;
+  color: #94a3b8; /* era #6b7280 */
   font-size: 14px;
 }
 
 .btnOutline {
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  color: #374151;
+  background: #1a2332; /* era #ffffff */
+  border: 1px solid #374151; /* era #d1d5db */
+  color: #e5e7eb; /* era #374151 */
   border-radius: 8px;
   padding: 8px 16px;
   font-size: 13px;
@@ -156,7 +138,7 @@
 }
 
 .btnOutline:hover {
-  background: #f3f4f6;
+  background: #263042; /* era #f3f4f6 */
 }
 
 @media (max-width: 720px) {

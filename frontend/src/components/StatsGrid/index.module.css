@@ -6,8 +6,9 @@
 }
 
 .statCard {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: #111827;
+  border: 1px solid rgba(34,211,238,.15) ;
+  box-shadow: 0 4px 24px rgba(0,0,0,.35), 0 0 16px rgba(34,211,238,.10);
   border-radius: 12px;
   padding: 18px 20px;
 }
@@ -33,7 +34,7 @@
 .statLabel {
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: #22d3ee;
   margin-top: 4px;
 }
 

@@ -1,99 +1,158 @@
-
-#container-header {
-  width: 100%;
-  background-color: #0d1825;
-}
-
 .header {
+  background: #111827;
+  border-bottom: 1px solid rgba(34,211,238,.15) ;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+.inner {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  height: 64px;
-  background-color: #0d1825;
-  width: 100%;
-  box-sizing: border-box;
 }
-
-.leftSection {
+.brand {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
-
-.logoLink {
-  display: flex;
-  align-items: center;
+.crest {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: #2d6a3f;
+  color: #fff;
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
   flex-shrink: 0;
 }
-
-.logoGoverno {
-  height: 44px;
-  width: auto;
-  object-fit: contain;
-}
-
-.divider {
-  width: 1px;
-  height: 36px;
-  background-color: rgba(255, 255, 255, 0.15);
-  flex-shrink: 0;
-}
-
-.brandBlock {
+.brandText {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
 }
-
-.brandName {
-  font-family: 'Segoe UI', Arial, sans-serif;
-  font-size: 1.15rem;
-  letter-spacing: 0.01em;
-  color: #e8eaf6;
+.overline {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: #64a4c4 ;
+  font-weight: 600;
 }
-
-.brandThin {
-  font-weight: 300;
-  color: #e8eaf6;
-}
-
-.brandBold {
+.name {
+  font-size: 14px;
   font-weight: 700;
   color: #ffffff;
+  line-height: 1.2;
 }
 
-.brandSub {
-  font-family: 'Segoe UI', Arial, sans-serif;
-  font-size: 0.65rem;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  color: #5b8fd4;
-  text-transform: uppercase;
-  white-space: nowrap;
+/* Menu de usuário */
+.userMenu {
+  position: relative;
 }
-
-.rightSection {
+.userTrigger {
   display: flex;
   align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  padding: 6px 12px 6px 6px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.userTrigger:hover,
+.userTrigger[data-open="true"] {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(34,211,238,.3);
+}
+.userAvatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: #2196a6;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
-
-.logoSecretaria {
-  height: 40px;
-  width: auto;
-  object-fit: contain;
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+.userName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+.userRole {
+  font-size: 11px;
+  color: #64a4c4;
+}
+.chevron {
+  color: #6b7a8d;
+  transition: transform .15s;
+  flex-shrink: 0;
+}
+.chevron[data-open="true"] {
+  transform: rotate(180deg);
 }
 
-.headerBorder {
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: #1a2332;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 40;
+}
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  text-align: left;
   width: 100%;
+  padding: 9px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #cbd5e1;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .12s, color .12s;
+}
+.dropdownItem:hover {
+  background: rgba(34,211,238,.08);
+  color: #ffffff;
+}
+.dropdownDivider {
   height: 1px;
-  background: linear-gradient(
-    to right,
-    transparent,
-    rgba(91, 143, 212, 0.3) 20%,
-    rgba(91, 143, 212, 0.3) 80%,
-    transparent
-  );
+  background: rgba(255,255,255,.08);
+  margin: 4px 2px;
+}
+.dropdownItemDanger {
+  color: #f87171;
+}
+.dropdownItemDanger:hover {
+  background: rgba(248,113,113,.1);
+  color: #fca5a5;
+}
+
+@media (max-width: 768px) {
+  .userInfo { display: none; }
 }
