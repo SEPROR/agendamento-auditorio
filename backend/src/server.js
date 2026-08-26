@@ -11,7 +11,7 @@ const ADAuth = adModule.default;
 const app = express();
 app.use(cors({
   origin: [
-    "http://localhost:5173",
+    "http://localhost:5174",
   ],
   credentials: true
 }));
