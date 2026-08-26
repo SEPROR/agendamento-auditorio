@@ -2,17 +2,36 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { Pool } from 'pg';
+import session from 'express-session';
+import fs from 'fs';
+import adModule from 'adauth';
 
 dotenv.config();
-
+const ADAuth = adModule.default;
 const app = express();
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://agendamento-auditorio.vercel.app"
-  ]
-}))
+  ],
+  credentials: true
+}));
+
+// 2. Parser de JSON para requisições POST/PUT
 app.use(express.json());
+
+// Configuração de sessão PRIMEIRO
+app.set('trust proxy', 1);
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'secreto_desenvolvimento',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // true só em produção com HTTPS
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 8 * 60 * 60 * 1000
+  }
+}));
 
 // Configuração do banco de dados
 const pool = new Pool({
@@ -23,6 +42,63 @@ const pool = new Pool({
   port: process.env.DB_PORT,
   ssl: { rejectUnauthorized: false },
 });
+
+/////////////////////////////////
+/// configuração login do AD ///
+////////////////////////////////
+
+let adInstance = null;
+
+async function getADClient() {
+  if (adInstance) return adInstance;
+
+  // 1. Instancia a classe
+  adInstance = new ADAuth({
+    url: process.env.AD_URL,
+    domainDN: process.env.AD_DOMAIN_DN,
+    searchBase: process.env.AD_SEARCH_BASE,
+    searchAttributes: ['displayName', 'mail', 'memberOf', 'sAMAccountName'],
+    connectTimeout: 5000,
+    timeout: 5000,
+    reconnect: true,
+    referrals: { enabled: false }
+  });
+
+    // // ADICIONAR ISSO: evita que erros de conexão derrubem o servidor inteiro
+  // adInstance.on('error', (err) => {
+  //   console.error('Erro de conexão com o AD (não fatal):', err.message);
+  // });
+
+  // 2. Inicializa o cliente AD de forma assíncrona
+  await adInstance.initialise();
+
+  return adInstance;
+}
+
+const AD_ADMIN_GROUP_DN = process.env.AD_ADMIN_GROUP_DN;
+
+// ADICIONAR ISSO: permite o usuário digitar só o username, sem prefixo de organização
+const AD_ORG_PREFIX = process.env.AD_ORG_PREFIX; // ex: "empresa.com"
+
+function normalizeUsername(input) {
+  if (!input) return input;
+  let user = input.trim();
+
+  if (user.includes('\\')) {
+    user = user.split('\\').pop();
+  }
+  if (user.includes('@')) {
+    user = user.split('@')[0];
+  }
+
+  if (AD_ORG_PREFIX) {
+    return `${user}@${AD_ORG_PREFIX}`; // formato UPN
+  }
+
+  return user;
+}
+
+// rotas
 
 app.get('/api/setores', async (req, res) => {
   try {
@@ -195,6 +271,56 @@ app.get('/api/agendamentos/relatorio', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ erro: 'Erro ao buscar relatório de agendamentos' });
+  }
+});
+
+
+/////////////////////
+/// rota login AD////
+/////////////////////
+
+app.post('/api/login-ad', async (req, res) => {
+  const { usuario, senha } = req.body;
+
+  console.log('Recebeu tentativa de login:', usuario)
+
+  if (!usuario || !senha) {
+    return res.status(400).json({ success: false, error: 'Usuário e senha são obrigatórios' });
+  }
+
+  try {
+    const ad = await getADClient();
+    const loginNormalizado = normalizeUsername(usuario); // <-- ADICIONADO
+    const user = await ad.authenticate(loginNormalizado, senha); // <-- USA o normalizado
+
+    const groups = Array.isArray(user.memberOf)
+      ? user.memberOf
+      : (user.memberOf ? [user.memberOf] : []);
+
+    const targetAdminGroup = (AD_ADMIN_GROUP_DN || '').toLowerCase();
+    const isAdmin = targetAdminGroup
+      ? groups.some((g) => typeof g === 'string' && g.toLowerCase() === targetAdminGroup)
+      : false;
+
+    req.session.autenticado = true;
+    req.session.usuario = user.displayName || user.sAMAccountName;
+    req.session.isAdmin = isAdmin;
+    req.session.nivelAcesso = isAdmin ? 'ADMIN' : 'USER';
+
+    return res.json({
+      success: true,
+      message: 'Login realizado com sucesso',
+      isAdmin,
+      usuario: user.displayName || user.sAMAccountName,
+      redirectTo: isAdmin ? '/agendamentos' : '/agendamentos/relatorio'
+    });
+
+  } catch (error) {
+    console.error('Erro na autenticação AD:', error.message);
+    return res.status(401).json({
+      success: false,
+      error: 'Usuário ou senha inválidos'
+    });
   }
 });
 
