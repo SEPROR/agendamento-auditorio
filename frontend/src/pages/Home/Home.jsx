@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar, User, Tag, CheckCircle2, AlertCircle, Info } from "lucide-react";
+import { Calendar, User, Tag, CheckCircle2, AlertCircle, Info, Mail } from "lucide-react";
 import { ASSUNTOS } from "../../constants.js";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
@@ -13,16 +13,16 @@ import styles from "./index.module.css";
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const EMPTY_FORM = {
-  nome: "", setor: "", assunto: "", sala: "",
+  nome: "", email: "", setor: "", assunto: "", sala: "",
   data: "", hora_inicio: "", hora_fim: "", observacoes: "",
 };
 
 const Home = () => {
-  const [form, setForm]           = useState(EMPTY_FORM);
-  const [errors, setErrors]       = useState({});
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [enviando, setEnviando]   = useState(false);
+  const [enviando, setEnviando] = useState(false);
 
   // Dados vindos do backend
   const [setores, setSetores] = useState([]);
@@ -146,17 +146,22 @@ const Home = () => {
 
   const validate = () => {
     const e = {};
-    if (!form.nome.trim()) e.nome       = "Nome é obrigatório";
-    if (!form.setor)       e.setor      = "Selecione um setor";
-    if (!form.assunto)     e.assunto    = "Selecione o tipo de evento";
-    if (!form.sala)        e.sala       = "Selecione uma sala";
-    if (!form.data)        e.data       = "Selecione uma data no calendário";
+    if (!form.nome.trim()) e.nome = "Nome é obrigatório";
+    if (!form.email.trim()) {
+      e.email = "E-mail é obrigatório";
+    } else if (!EMAIL_REGEX.test(form.email.trim())) {
+      e.email = "Informe um e-mail válido";
+    }
+    if (!form.setor) e.setor = "Selecione um setor";
+    if (!form.assunto) e.assunto = "Selecione o tipo de evento";
+    if (!form.sala) e.sala = "Selecione uma sala";
+    if (!form.data) e.data = "Selecione uma data no calendário";
     if (!form.hora_inicio) e.hora_inicio = "Selecione um horário disponível";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
- const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
@@ -169,6 +174,7 @@ const Home = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nome: form.nome,
+          email: form.email,
           setor_id: form.setor,
           assunto: form.assunto,
           sala: form.sala,
@@ -212,11 +218,11 @@ const Home = () => {
   };
 
   const selectedSala = salas.find((s) => s.id === form.sala);
-  const isHall        = selectedSala?.nome === "Hall";
+  const isHall = selectedSala?.nome === "Hall";
 
 
 
-  
+
   return (
     <div className={styles.page}>
       <Header />
@@ -246,6 +252,8 @@ const Home = () => {
                   <p className={styles.cardLabel}>Responsável</p>
                   <InputField label="Nome completo" icon={User} value={form.nome}
                     onChange={set("nome")} placeholder="Ex: Ana Beatriz Silva" error={errors.nome} />
+                  <InputField label="E-mail" icon={Mail} type="email" value={form.email}
+                    onChange={set("email")} placeholder="Ex: ana.silva@empresa.com" error={errors.email} />
                   <SelectField
                     label="Setor"
                     icon={Tag}
@@ -262,13 +270,13 @@ const Home = () => {
                   <p className={styles.cardLabel}>Tipo de evento</p>
                   <SelectField label="Assunto / finalidade" icon={Tag} value={form.assunto}
                     label="Assunto / finalidade"
-                   icon={Tag}
-                  value={form.assunto}
-                  onChange={set("assunto")}
-                  options={tipo.map((t) => ({ value: t.id, label: t.tipo }))}
-                  placeholder={carregandoTipo ? "Carregando..." : "Selecione o tipo de evento"}
-                  error={errors.assunto}
-                    />
+                    icon={Tag}
+                    value={form.assunto}
+                    onChange={set("assunto")}
+                    options={tipo.map((t) => ({ value: t.id, label: t.tipo }))}
+                    placeholder={carregandoTipo ? "Carregando..." : "Selecione o tipo de evento"}
+                    error={errors.assunto}
+                  />
                 </div>
 
                 {/* Salas */}
@@ -393,7 +401,7 @@ const Home = () => {
           </div>
         </main>
       )}
-              <Footer />
+      <Footer />
 
     </div>
   );
