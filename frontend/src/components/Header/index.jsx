@@ -1,9 +1,14 @@
 import { useState, useRef, useEffect } from "react";
+import { LogOut } from "lucide-react";
 import styles from "./index.module.css";
+import { useAuth } from "../../content/AuthContent";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
+
+  // Fonte única de verdade: vem do AuthProvider (sem fetch duplicado aqui)
+  const { usuario, isGilog, loading, logout } = useAuth();
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -14,6 +19,14 @@ export default function Header() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleLogout = async () => {
+    setOpen(false);
+    // logout() do AuthContext já faz o POST e redireciona (window.location.replace)
+    await logout();
+  };
+
+  const displayName = usuario || "Usuário";
 
   return (
     <header className={styles.header}>
@@ -31,12 +44,17 @@ export default function Header() {
             type="button"
             className={styles.userTrigger}
             data-open={open}
+            disabled={loading}
             onClick={() => setOpen((prev) => !prev)}
           >
-            <div className={styles.userAvatar}>U</div>
+            <div className={styles.userAvatar}>
+              {displayName.charAt(0).toUpperCase()}
+            </div>
             <div className={styles.userInfo}>
-              <span className={styles.userName}>Usuário</span>
-              <span className={styles.userRole}>Administrador</span>
+              <span className={styles.userName}>{displayName}</span>
+              <span className={styles.userRole}>
+                {isGilog ? "Administrador" : "Usuário"}
+              </span>
             </div>
             <svg
               className={styles.chevron}
@@ -54,18 +72,35 @@ export default function Header() {
 
           {open && (
             <div className={styles.dropdown}>
-              <a href="/" className={styles.dropdownItem}>
+              {/* Visível para todos os usuários autenticados */}
+              <a
+                href="/"
+                className={styles.dropdownItem}
+                onClick={() => setOpen(false)}
+              >
                 Agendamento
               </a>
-              <a href="/agendamentos/relatorio" className={styles.dropdownItem}>
-                Relatório
-              </a>
+
+              {/* Visível apenas para GILOG / Administradores */}
+              {isGilog && (
+                <a
+                  href="/agendamentos/relatorio"
+                  className={styles.dropdownItem}
+                  onClick={() => setOpen(false)}
+                >
+                  Relatório
+                </a>
+              )}
+
               <div className={styles.dropdownDivider} />
+
               <button
                 type="button"
                 className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`}
+                onClick={handleLogout}
               >
-                Sair
+                <LogOut size={16} className={styles.actionIconRed} />
+                <span>Sair</span>
               </button>
             </div>
           )}
