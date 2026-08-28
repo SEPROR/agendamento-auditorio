@@ -5,13 +5,14 @@ import { Pool } from 'pg';
 import session from 'express-session';
 import fs from 'fs';
 import adModule from 'adauth';
+import nodemailer from "nodemailer";
 
 dotenv.config();
 const ADAuth = adModule.default;
 const app = express();
 app.use(cors({
   origin: [
-    "http://localhost:5174",
+    "http://localhost:5173",
   ],
   credentials: true
 }));
@@ -41,6 +42,23 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT,
   ssl: { rejectUnauthorized: false },
+});
+
+
+/////////////////////////////////
+/// configuração email ///
+////////////////////////////////
+
+// const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  host: "smtp.example.com",
+  port: 587,
+  secure: false, // use STARTTLS (upgrade connection to TLS after connecting)
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
 });
 
 /////////////////////////////////
@@ -200,10 +218,12 @@ app.post('/api/agendamentos', async (req, res) => {
       usuario_id = novoUsuario.rows[0].id;
     }
 
-    
+    // 2. "assunto" já vem do frontend como o ID numérico do tipo de evento
+    // (o <select> envia t.id, não t.tipo), então usamos ele direto.
     const tipo_evento_id = assunto;
 
-
+    // 3. Insere o agendamento
+    // "sala" já vem como ID numérico da sala (o <select>/SalaCard usa sala.id).
     const insertQuery = `
       INSERT INTO agendamentos 
         (usuario_id, tipo_evento_id, sala_id, data, hora_inicio, hora_fim, observacoes)
@@ -280,7 +300,7 @@ app.get('/api/agendamentos/relatorio', async (req, res) => {
 app.post('/api/login-ad', async (req, res) => {
   const { usuario, senha } = req.body;
 
-  console.log('Recebeu tentativa de login:', usuario);
+  console.log('Recebeu tentativa de login:', usuario)
 
   if (!usuario || !senha) {
     return res.status(400).json({ success: false, error: 'Usuário e senha são obrigatórios' });
@@ -288,34 +308,29 @@ app.post('/api/login-ad', async (req, res) => {
 
   try {
     const ad = await getADClient();
-    const loginNormalizado = normalizeUsername(usuario);
-    const user = await ad.authenticate(loginNormalizado, senha);
+    const loginNormalizado = normalizeUsername(usuario); // <-- ADICIONADO
+    const user = await ad.authenticate(loginNormalizado, senha); // <-- USA o normalizado
 
     const groups = Array.isArray(user.memberOf)
       ? user.memberOf
       : (user.memberOf ? [user.memberOf] : []);
 
-    console.log('Grupos do usuário:', groups);
-    console.log('AD_GILOG_GROUP_DN configurado:', AD_GILOG_GROUP_DN);
-
-    const isAdmin = groups.some((g) => g.toLowerCase() === AD_ADMIN_GROUP_DN.toLowerCase());
-    const isGilog = AD_GILOG_GROUP_DN
-      ? groups.some((g) => g.toLowerCase() === AD_GILOG_GROUP_DN.toLowerCase())
+    const targetAdminGroup = (AD_ADMIN_GROUP_DN || '').toLowerCase();
+    const isAdmin = targetAdminGroup
+      ? groups.some((g) => typeof g === 'string' && g.toLowerCase() === targetAdminGroup)
       : false;
 
     req.session.autenticado = true;
     req.session.usuario = user.displayName || user.sAMAccountName;
     req.session.isAdmin = isAdmin;
-    req.session.isGilog = isGilog;
-    req.session.nivelAcesso = isGilog ? 'GILOG' : 'USER';
+    req.session.nivelAcesso = isAdmin ? 'ADMIN' : 'USER';
 
     return res.json({
       success: true,
       message: 'Login realizado com sucesso',
       isAdmin,
-      isGilog,
       usuario: user.displayName || user.sAMAccountName,
-      redirectTo: isGilog ? '/manager' : '/chamado'
+      redirectTo: isAdmin ? '/agendamentos/relatorio' : '/agendamentos'
     });
 
   } catch (error) {
@@ -327,35 +342,16 @@ app.post('/api/login-ad', async (req, res) => {
   }
 });
 
-// Rota de logout
-app.post('/api/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({
-        success: false,
-        error: 'Erro ao fazer logout'
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Logout realizado com sucesso'
-    });
-  });
-});
-
-// Rota para verificar autenticação
 app.get('/api/auth/status', (req, res) => {
-  res.json({
-    autenticado: !!req.session.autenticado,
-    usuario: req.session.usuario,
-    usuarioId: req.session.usuarioId || null,
-    isAdmin: req.session.isAdmin || false,
-    isGilog: req.session.isGilog || false,
-    nivelAcesso: req.session.nivelAcesso || null
-  });
+  if (req.session && req.session.autenticado) {
+    return res.json({
+      autenticado: true,
+      usuario: req.session.usuario,
+      isAdmin: req.session.isAdmin,
+    });
+  }
+  return res.status(401).json({ autenticado: false });
 });
-
 
 
 const PORT = process.env.PORT || 3000;
