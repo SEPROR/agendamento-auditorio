@@ -1,17 +1,6 @@
 import { useState } from 'react'
 import styles from './index.module.css'
 
-function Logo() {
-  return (
-    <div className={styles.logo}>
-      <div className={styles.logoMark}>
-        <div className={styles.logoMarkInner} />
-      </div>
-      <span className={styles.logoName}>SEPROR</span>
-    </div>
-  )
-}
-
 function EyeIcon({ open }) {
   if (open) {
     return (
@@ -41,8 +30,6 @@ function SpinnerIcon() {
   )
 }
 
-// ─── Login Page ───────────────────────────────────────────────────────────────
-
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -50,51 +37,48 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
-const handleSubmit = async (e) => {
-  e.preventDefault()
-  setError('')
-  setLoading(true)
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/login-ad`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', // importante: envia/recebe cookie de sessão
-      body: JSON.stringify({ usuario: username, senha: password }),
-    })
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/login-ad`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ usuario: username, senha: password }),
+      })
 
-    const data = await response.json()
+      const data = await response.json()
 
-    if (!response.ok || !data.success) {
-      throw new Error(data.error || 'Usuário ou senha inválidos.')
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Usuário ou senha inválidos.')
+      }
+
+      window.location.href = data.redirectTo || '/'
+    } catch (err) {
+      setError(err?.message ?? 'Não foi possível autenticar. Tente novamente.')
+    } finally {
+      setLoading(false)
     }
-
-    // redireciona conforme o papel do usuário (ver seção 3)
-    window.location.href = data.redirectTo || '/'
-  } catch (err) {
-    setError(err?.message ?? 'Não foi possível autenticar. Tente novamente.')
-  } finally {
-    setLoading(false)
   }
-}
 
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <Logo />
-
         <div className={styles.header}>
+          <p className={styles.eyebrow}>ACESSE PARA AGENDAR</p>
           <h1 className={styles.title}>Bem-vindo</h1>
-          <p className={styles.eyebrow}>Entre com suas credenciais para continuar.</p>
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit} noValidate>
           {/* Usuário */}
           <div className={styles.field}>
             <label className={styles.label} htmlFor="username">
-              Usuário
+              USUÁRIO
             </label>
             <input
               id="username"
@@ -112,7 +96,7 @@ const handleSubmit = async (e) => {
           {/* Senha */}
           <div className={styles.field}>
             <label className={styles.label} htmlFor="password">
-              Senha
+              SENHA
             </label>
             <div className={styles.passwordWrapper}>
               <input
@@ -154,7 +138,7 @@ const handleSubmit = async (e) => {
                 Entrando…
               </>
             ) : (
-              'Entrar'
+              'ENTRAR'
             )}
           </button>
         </form>
@@ -164,4 +148,3 @@ const handleSubmit = async (e) => {
     </div>
   )
 }
-

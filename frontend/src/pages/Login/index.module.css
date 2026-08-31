@@ -3,7 +3,7 @@
 /* Page */
 .page {
   min-height: 100vh;
-  background-color: #EAE7E3;
+  background-color: #121212;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14,69 +14,36 @@
 
 /* Card */
 .card {
-  background-color: #ffffff;
+  background-color: #212121;
   border-radius: 8px;
-  padding: 56px 52px;
+  padding: 48px 40px;
   width: 100%;
-  max-width: 420px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.07);
-}
-
-/* Logo */
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 48px;
-}
-
-.logoMark {
-  width: 28px;
-  height: 28px;
-  border: 1.5px solid #1c1a18;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.logoMarkInner {
-  width: 10px;
-  height: 10px;
-  background-color: #1a3a6b;
-  border-radius: 1px;
-}
-
-.logoName {
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #1c1a18;
+  max-width: 400px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  border: 1px solid #2a2a2a;
 }
 
 /* Header */
 .header {
-  margin-bottom: 40px;
+  margin-bottom: 32px;
 }
 
 .eyebrow {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #1a3a6b;
-  margin: 0 0 10px;
+  color: #4db6ac;
+  margin: 0 0 8px;
 }
 
 .title {
   font-family: 'DM Serif Display', Georgia, serif;
-  font-size: 30px;
+  font-size: 28px;
   font-weight: 400;
-  color: #1c1a18;
+  color: #ffffff;
   margin: 0;
-  line-height: 1.15;
+  line-height: 1.2;
 }
 
 /* Form */
@@ -94,21 +61,21 @@
 
 .label {
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.07em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #5a5752;
+  color: #9e9e9e;
 }
 
 .input {
-  height: 46px;
-  padding: 0 16px;
+  height: 44px;
+  padding: 0 14px;
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 14px;
   font-weight: 400;
-  color: #1c1a18;
-  background-color: #fafaf8;
-  border: 1.5px solid #ddd9d3;
+  color: #ffffff;
+  background-color: #181818;
+  border: 1px solid #333333;
   border-radius: 4px;
   outline: none;
   transition: border-color 0.18s ease;
@@ -117,17 +84,17 @@
 }
 
 .input:focus {
-  border-color: #1a3a6b;
+  border-color: #4db6ac;
 }
 
 .input::placeholder {
-  color: #c4bfb9;
+  color: #555555;
 }
 
-/* autofill override */
+/* Autofill override para modo escuro */
 .input:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0 100px #fafaf8 inset;
-  -webkit-text-fill-color: #1c1a18;
+  -webkit-box-shadow: 0 0 0 100px #181818 inset;
+  -webkit-text-fill-color: #ffffff;
 }
 
 .passwordWrapper {
@@ -135,19 +102,19 @@
 }
 
 .passwordWrapper .input {
-  padding-right: 48px;
+  padding-right: 44px;
 }
 
 .togglePassword {
   position: absolute;
-  right: 14px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
-  color: #aaa5a0;
+  color: #666666;
   display: flex;
   align-items: center;
   line-height: 0;
@@ -155,24 +122,24 @@
 }
 
 .togglePassword:hover {
-  color: #5a5752;
+  color: #9e9e9e;
 }
 
 /* Submit */
 .submitButton {
-  height: 46px;
+  height: 44px;
   margin-top: 8px;
-  background-color: #1c1a18;
-  color: #f7f5f2;
+  background-color: #3b8b82;
+  color: #ffffff;
   font-family: 'Inter', system-ui, sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.09em;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -181,20 +148,20 @@
 }
 
 .submitButton:hover:not(:disabled) {
-  background-color: #1a3a6b;
+  background-color: #4db6ac;
 }
 
 .submitButton:disabled {
-  background-color: #254370;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 /* Error */
 .errorMessage {
   font-size: 12px;
-  color: #b94040;
-  background-color: #fdf2f2;
-  border: 1px solid #f0d0d0;
+  color: #ff8a80;
+  background-color: rgba(211, 47, 47, 0.1);
+  border: 1px solid rgba(211, 47, 47, 0.3);
   border-radius: 4px;
   padding: 10px 14px;
   margin-top: -4px;
@@ -212,9 +179,9 @@
 
 /* Footer */
 .footer {
-  margin-top: 40px;
+  margin-top: 36px;
   font-size: 11px;
-  color: #c4bfb9;
+  color: #555555;
   text-align: center;
   letter-spacing: 0.03em;
 }

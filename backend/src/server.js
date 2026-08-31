@@ -83,9 +83,9 @@ async function getADClient() {
   });
 
     // // ADICIONAR ISSO: evita que erros de conexão derrubem o servidor inteiro
-  // adInstance.on('error', (err) => {
-  //   console.error('Erro de conexão com o AD (não fatal):', err.message);
-  // });
+   adInstance.on('error', (err) => {
+    console.error('Erro de conexão com o AD:', err.message);
+   });
 
   // 2. Inicializa o cliente AD de forma assíncrona
   await adInstance.initialise();
