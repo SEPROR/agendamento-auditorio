@@ -175,6 +175,7 @@ const Home = () => {
       const res = await fetch(`${API_URL}/api/agendamentos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // envia o cookie de sessão — necessário agora que a rota exige login
         body: JSON.stringify({
           nome: form.nome,
           email: form.email,
@@ -223,9 +224,6 @@ const Home = () => {
   const selectedSala = salas.find((s) => s.id === form.sala);
   const isHall = selectedSala?.nome === "Hall";
 
-
-
-
   return (
     <div className={styles.page}>
       <Header />
@@ -256,7 +254,7 @@ const Home = () => {
                   <InputField label="Nome completo" icon={User} value={form.nome}
                     onChange={set("nome")} placeholder="Ex: Ana Beatriz Silva" error={errors.nome} />
                   <InputField label="E-mail" icon={Mail} type="email" value={form.email}
-                    onChange={set("email")} placeholder="Ex: ana.silva@empresa.com" error={errors.email} />
+                    onChange={set("email")} placeholder="Ex: ana.silva@gmail.com" error={errors.email} />
                   <SelectField
                     label="Setor"
                     icon={Tag}

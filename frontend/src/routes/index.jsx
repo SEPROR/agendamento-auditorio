@@ -5,6 +5,7 @@ import { PrivateRoute } from './PrivateRoute';
 import Home from '../pages/Home/Home';
 import Relatorio from '../pages/Relatorio/Relatorio';
 import Login from '../pages/Login/Login';
+import MeusAgendamentos from '../pages/MeusAgendamentos';
 
 const AppRoutes = () => {
   return (
@@ -19,6 +20,15 @@ const AppRoutes = () => {
             element={
               <PrivateRoute>
                 <Home />
+              </PrivateRoute>
+            }
+          />
+
+           <Route
+            path="/meusagendamentos"
+            element={
+              <PrivateRoute>
+                <MeusAgendamentos />
               </PrivateRoute>
             }
           />

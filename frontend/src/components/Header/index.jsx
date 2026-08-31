@@ -73,7 +73,7 @@ export default function Header() {
               <a href="/agendamentos" className={styles.dropdownItem}>
                 Agendamento
               </a>
-              <a href="/agendamentos" className={styles.dropdownItem}>
+              <a href="/meusagendamentos" className={styles.dropdownItem}>
                 Meus agendamentos
               </a>
               {isGilog && (
