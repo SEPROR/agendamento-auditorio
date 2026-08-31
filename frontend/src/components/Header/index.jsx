@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { LogOut } from "lucide-react";
+import { useAuth } from "../../content/AuthContext";
 import styles from "./index.module.css";
-import { useAuth } from "../../content/AuthContent";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -26,8 +26,6 @@ export default function Header() {
     await logout();
   };
 
-  const displayName = usuario || "Usuário";
-
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
@@ -48,10 +46,10 @@ export default function Header() {
             onClick={() => setOpen((prev) => !prev)}
           >
             <div className={styles.userAvatar}>
-              {displayName.charAt(0).toUpperCase()}
+              {usuario ? usuario.charAt(0).toUpperCase() : "U"}
             </div>
             <div className={styles.userInfo}>
-              <span className={styles.userName}>{displayName}</span>
+              <span className={styles.userName}>{usuario || "Usuário"}</span>
               <span className={styles.userRole}>
                 {isGilog ? "Administrador" : "Usuário"}
               </span>
@@ -72,22 +70,11 @@ export default function Header() {
 
           {open && (
             <div className={styles.dropdown}>
-              {/* Visível para todos os usuários autenticados */}
-              <a
-                href="/"
-                className={styles.dropdownItem}
-                onClick={() => setOpen(false)}
-              >
+              <a href="/agendamentos" className={styles.dropdownItem}>
                 Agendamento
               </a>
-
-              {/* Visível apenas para GILOG / Administradores */}
               {isGilog && (
-                <a
-                  href="/agendamentos/relatorio"
-                  className={styles.dropdownItem}
-                  onClick={() => setOpen(false)}
-                >
+                <a href="/agendamentos/relatorio" className={styles.dropdownItem}>
                   Relatório
                 </a>
               )}
