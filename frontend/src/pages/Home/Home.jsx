@@ -12,6 +12,9 @@ import styles from "./index.module.css";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+// Adicionado: faltava essa constante, causava "ReferenceError: EMAIL_REGEX is not defined"
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const EMPTY_FORM = {
   nome: "", email: "", setor: "", assunto: "", sala: "",
   data: "", hora_inicio: "", hora_fim: "", observacoes: "",
@@ -268,7 +271,7 @@ const Home = () => {
                 {/* Tipo de evento */}
                 <div className={styles.card}>
                   <p className={styles.cardLabel}>Tipo de evento</p>
-                  <SelectField label="Assunto / finalidade" icon={Tag} value={form.assunto}
+                  <SelectField
                     label="Assunto / finalidade"
                     icon={Tag}
                     value={form.assunto}

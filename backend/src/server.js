@@ -43,6 +43,20 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
+
+
+/////////////////////////////////
+/// configuração email ///
+////////////////////////////////
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
+
 /////////////////////////////////
 /// configuração login do AD ///
 ////////////////////////////////
@@ -64,11 +78,7 @@ async function getADClient() {
     referrals: { enabled: false }
   });
 
-    // // ADICIONAR ISSO: evita que erros de conexão derrubem o servidor inteiro
-  // adInstance.on('error', (err) => {
-  //   console.error('Erro de conexão com o AD (não fatal):', err.message);
-  // });
-
+  
   // 2. Inicializa o cliente AD de forma assíncrona
   await adInstance.initialise();
 
@@ -167,6 +177,7 @@ app.post('/api/agendamentos', async (req, res) => {
   try {
     const {
       nome,
+      email,          // <- novo campo vindo do formulário
       setor_id,
       assunto,
       sala,
@@ -183,26 +194,32 @@ app.post('/api/agendamentos', async (req, res) => {
 
     await client.query('BEGIN');
 
-    // 1. Busca o usuário pelo nome; se não existir, cria
+    // 1. Busca o usuário pelo nome; se não existir, cria (agora salvando o email também)
     let usuarioResult = await client.query(
-      'SELECT id FROM usuarios WHERE nome = $1',
+      'SELECT id, email FROM usuarios WHERE nome = $1',
       [nome]
     );
 
     let usuario_id;
     if (usuarioResult.rows.length > 0) {
       usuario_id = usuarioResult.rows[0].id;
+      // Atualiza o email se ele veio vazio/diferente antes
+      if (email) {
+        await client.query('UPDATE usuarios SET email = $1 WHERE id = $2', [email, usuario_id]);
+      }
     } else {
       const novoUsuario = await client.query(
-        'INSERT INTO usuarios (nome, setor_id) VALUES ($1, $2) RETURNING id',
-        [nome, setor_id]
+        'INSERT INTO usuarios (nome, setor_id, email) VALUES ($1, $2, $3) RETURNING id',
+        [nome, setor_id, email]
       );
       usuario_id = novoUsuario.rows[0].id;
     }
 
-    
+
+   
     const tipo_evento_id = assunto;
 
+    
 
     const insertQuery = `
       INSERT INTO agendamentos 
@@ -214,7 +231,53 @@ app.post('/api/agendamentos', async (req, res) => {
 
     const result = await client.query(insertQuery, params);
 
+    
+    const detalhesResult = await client.query(
+      `SELECT 
+         u.nome AS nome,
+         u.email AS email,
+         s.nome AS setor,
+         sa.nome AS sala,
+         t.tipo AS assunto,
+         to_char(a.data, 'DD/MM/YYYY') AS data,
+         to_char(a.hora_inicio, 'HH24:MI') AS hora_inicio,
+         to_char(a.hora_fim, 'HH24:MI') AS hora_fim
+       FROM agendamentos a
+       JOIN usuarios u ON u.id = a.usuario_id
+       JOIN setores s ON s.id = u.setor_id
+       JOIN salas sa ON sa.id = a.sala_id
+       JOIN tipos_evento t ON t.id = a.tipo_evento_id
+       WHERE a.id = $1`,
+      [result.rows[0].id]
+    );
+
     await client.query('COMMIT');
+
+   
+    const detalhes = detalhesResult.rows[0];
+    if (detalhes.email) {
+      try {
+        await transporter.sendMail({
+          from: process.env.GMAIL_USER,
+          to: detalhes.email,
+          subject: `Confirmação de agendamento - ${detalhes.assunto}`,
+          html: `
+            <h2>Olá, ${detalhes.nome}!</h2>
+            <p>Seu agendamento foi confirmado com os seguintes detalhes:</p>
+            <ul>
+              <li><strong>Setor:</strong> ${detalhes.setor}</li>
+              <li><strong>Sala:</strong> ${detalhes.sala}</li>
+              <li><strong>Assunto:</strong> ${detalhes.assunto}</li>
+              <li><strong>Data:</strong> ${detalhes.data}</li>
+              <li><strong>Horário:</strong> ${detalhes.hora_inicio} - ${detalhes.hora_fim}</li>
+            </ul>
+          `,
+        });
+      } catch (erroEmail) {
+        console.error('Agendamento salvo, mas falhou ao enviar e-mail:', erroEmail.message);
+      }
+    }
+
     res.status(201).json(result.rows[0]);
   } catch (err) {
     await client.query('ROLLBACK');
@@ -226,7 +289,7 @@ app.post('/api/agendamentos', async (req, res) => {
 });
 
 app.post('/api/usuarios', async (req, res) => {
-  const { nome, setor_id } = req.body;
+  const { nome, setor_id, email } = req.body;
 
   if (!nome || !setor_id) {
     return res.status(400).json({ erro: 'Nome e setor são obrigatórios' });
@@ -234,8 +297,8 @@ app.post('/api/usuarios', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'INSERT INTO usuarios (nome, setor_id) VALUES ($1, $2) RETURNING *',
-      [nome, setor_id]
+      'INSERT INTO usuarios (nome, setor_id, email) VALUES ($1, $2, $3) RETURNING *',
+      [nome, setor_id, email]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
