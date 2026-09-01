@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import styles from "./index.module.css";
 import Header from "../../components/Header";
+import Footer from "../../components/Footer";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -146,10 +147,7 @@ export default function MeusAgendamentos() {
 
       <main className={styles.main}>
         <div className={styles.pageHeader}>
-          <div className={styles.pageHeaderLabel}>
-            <span className={styles.pageHeaderLine} />
-            <span className={styles.pageHeaderTag}>Agendamentos</span>
-          </div>
+          
           <h1 className={styles.pageTitle}>Meus Agendamentos</h1>
           <p className={styles.pageSubtitle}>Gerencie e acompanhe suas reservas de salas</p>
         </div>
@@ -254,6 +252,7 @@ export default function MeusAgendamentos() {
           })}
         </div>
       </main>
+      <Footer/>
     </div>
   );
 }
