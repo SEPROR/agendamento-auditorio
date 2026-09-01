@@ -23,6 +23,8 @@ const AppRoutes = () => {
             }
           />
 
+          
+
           {/* Exclusiva do ADM */}
           <Route
             path="/agendamentos/relatorio"

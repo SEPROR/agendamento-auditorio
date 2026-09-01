@@ -222,8 +222,7 @@ app.post('/api/agendamentos', async (req, res) => {
       usuario_id = novoUsuario.rows[0].id;
     }
 
-    // 2. "assunto" já vem do frontend como o ID numérico do tipo de evento
-    // (o <select> envia t.id, não t.tipo), então usamos ele direto.
+    
     const tipo_evento_id = assunto;
 
     // 3. Insere o agendamento
