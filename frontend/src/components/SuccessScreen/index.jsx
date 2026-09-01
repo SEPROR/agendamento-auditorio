@@ -13,7 +13,7 @@ export function SuccessScreen({ onReset }) {
       <div className={styles.textGroup}>
         <h2 className={styles.title}>Agendamento Confirmado</h2>
         <p className={styles.subtitle}>
-          Sua reserva foi registrada com sucesso.
+          ⚠️ Fique atento ao seu E-mail para a confirmação da reserva. 
         </p>
       </div>
       <button onClick={onReset} className={styles.resetButton}>

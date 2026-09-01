@@ -179,7 +179,7 @@ app.get('/api/agendamentos', async (req, res) => {
 });
 
 
-app.post('/api/agendamentos', async (req, res) => {
+app.post('/api/agendamentos', requireAuth, async (req, res) => {
   const client = await pool.connect();
   try {
     const {
@@ -198,6 +198,8 @@ app.post('/api/agendamentos', async (req, res) => {
     if (!nome || !setor_id || !assunto || !sala || !data || !hora_inicio || !hora_fim) {
       return res.status(400).json({ erro: 'Campos obrigatórios faltando' });
     }
+
+    const solicitanteAdLogin = req.session.adLogin || null;
 
     await client.query('BEGIN');
 
@@ -230,11 +232,11 @@ app.post('/api/agendamentos', async (req, res) => {
 
     const insertQuery = `
       INSERT INTO agendamentos 
-        (usuario_id, tipo_evento_id, sala_id, data, hora_inicio, hora_fim, observacoes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+        (usuario_id, tipo_evento_id, sala_id, data, hora_inicio, hora_fim, observacoes, solicitante_ad_login)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `;
-    const params = [usuario_id, tipo_evento_id, sala, data, hora_inicio, hora_fim, observacoes];
+    const params = [usuario_id, tipo_evento_id, sala, data, hora_inicio, hora_fim, observacoes, solicitanteAdLogin];
 
     const result = await client.query(insertQuery, params);
 
@@ -342,6 +344,46 @@ app.get('/api/agendamentos/relatorio', async (req, res) => {
   }
 });
 
+// middleware simples de autenticação — protege rotas que dependem da sessão
+function requireAuth(req, res, next) {
+  if (req.session && req.session.autenticado) return next();
+  return res.status(401).json({ erro: 'Não autenticado' });
+}
+
+// GET /api/agendamentos/minhas
+// Retorna só os agendamentos do usuário logado (casando pelo nome salvo em `usuarios`,
+// já que a tabela usuarios é populada pelo nome digitado no formulário, e não tem
+// FK direta para o login do AD).
+app.get('/api/agendamentos/minhas', requireAuth, async (req, res) => {
+  try {
+    const adLogin = req.session.adLogin;
+ 
+    const query = `
+      SELECT
+        a.id,
+        t.tipo AS assunto,
+        sa.nome AS sala,
+        sa.capacidade AS capacidade,
+        u.nome AS responsavel,
+        to_char(a.data, 'YYYY-MM-DD') AS data,
+        to_char(a.hora_inicio, 'HH24:MI') AS hora_inicio,
+        to_char(a.hora_fim, 'HH24:MI') AS hora_fim,
+        a.observacoes
+      FROM agendamentos a
+      JOIN usuarios u ON u.id = a.usuario_id
+      JOIN salas sa ON sa.id = a.sala_id
+      JOIN tipos_evento t ON t.id = a.tipo_evento_id
+      WHERE a.solicitante_ad_login = $1
+      ORDER BY a.data DESC, a.hora_inicio DESC
+    `;
+    const result = await pool.query(query, [adLogin]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro ao buscar seus agendamentos' });
+  }
+});
+
 
 /////////////////////
 /// rota login AD////
@@ -372,6 +414,7 @@ app.post('/api/login-ad', async (req, res) => {
 
     req.session.autenticado = true;
     req.session.usuario = user.displayName || user.sAMAccountName;
+    req.session.adLogin = (user.sAMAccountName || loginNormalizado || '').toLowerCase();
     req.session.isAdmin = isAdmin;
     req.session.nivelAcesso = isAdmin ? 'ADMIN' : 'USER';
 
