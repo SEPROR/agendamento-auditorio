@@ -12,7 +12,6 @@ import styles from "./index.module.css";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-// Adicionado: faltava essa constante, causava "ReferenceError: EMAIL_REGEX is not defined"
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const EMPTY_FORM = {
@@ -35,6 +34,40 @@ const Home = () => {
   const [carregandoSetores, setCarregandoSetores] = useState(true);
   const [carregandoTipo, setCarregandoTipo] = useState(true);
   const [carregandoSalas, setCarregandoSalas] = useState(true);
+  const [carregandoUsuario, setCarregandoUsuario] = useState(true); // NOVO
+
+  // NOVO: busca o usuário logado no AD e preenche o nome (travado)
+  useEffect(() => {
+    async function fetchUsuarioLogado() {
+      try {
+        const res = await fetch(`${API_URL}/api/auth/status`, {
+          credentials: "include" // envia o cookie de sessão
+        });
+
+        // Esse backend responde 401 quando não há sessão — é esperado, não é erro de rede
+        if (res.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
+
+        if (!res.ok) throw new Error(`Erro ao buscar usuário: ${res.status}`);
+
+        const data = await res.json();
+
+        if (data.autenticado && data.usuario) {
+          setForm((p) => ({ ...p, nome: data.usuario }));
+        } else {
+          window.location.href = "/login";
+        }
+      } catch (err) {
+        console.error("Erro ao buscar usuário logado:", err);
+        setErrors((p) => ({ ...p, geral: "Não foi possível identificar o usuário logado." }));
+      } finally {
+        setCarregandoUsuario(false);
+      }
+    }
+    fetchUsuarioLogado();
+  }, []);
 
   useEffect(() => {
     async function fetchSetores() {
@@ -215,7 +248,8 @@ const Home = () => {
   };
 
   const handleReset = () => {
-    setForm(EMPTY_FORM);
+    // Mantém o nome do usuário logado ao resetar o form
+    setForm((p) => ({ ...EMPTY_FORM, nome: p.nome }));
     setErrors({});
     setSelectedSlot(null);
     setSubmitted(false);
@@ -251,8 +285,16 @@ const Home = () => {
                 {/* Responsável */}
                 <div className={styles.card}>
                   <p className={styles.cardLabel}>Responsável</p>
-                  <InputField label="Nome completo" icon={User} value={form.nome}
-                    onChange={set("nome")} placeholder="Ex: Ana Beatriz Silva" error={errors.nome} />
+                  <InputField
+                    label="Nome completo"
+                    icon={User}
+                    value={form.nome}
+                    onChange={set("nome")}
+                    placeholder={carregandoUsuario ? "Carregando..." : "Ex: Ana Beatriz Silva"}
+                    error={errors.nome}
+                    readOnly
+                    disabled={carregandoUsuario}
+                  />
                   <InputField label="E-mail" icon={Mail} type="email" value={form.email}
                     onChange={set("email")} placeholder="Ex: ana.silva@gmail.com" error={errors.email} />
                   <SelectField

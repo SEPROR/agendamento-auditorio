@@ -24,6 +24,7 @@ const AppRoutes = () => {
             }
           />
 
+
            <Route
             path="/meusagendamentos"
             element={
@@ -32,6 +33,7 @@ const AppRoutes = () => {
               </PrivateRoute>
             }
           />
+
 
           {/* Exclusiva do ADM */}
           <Route
