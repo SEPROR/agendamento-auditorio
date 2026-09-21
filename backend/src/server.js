@@ -81,10 +81,10 @@ async function getADClient() {
     referrals: { enabled: false }
   });
 
-    // // ADICIONAR ISSO: evita que erros de conexão derrubem o servidor inteiro
-   adInstance.on('error', (err) => {
+  // // ADICIONAR ISSO: evita que erros de conexão derrubem o servidor inteiro
+  adInstance.on('error', (err) => {
     console.error('Erro de conexão com o AD:', err.message);
-   });
+  });
 
   // 2. Inicializa o cliente AD de forma assíncrona
   await adInstance.initialise();
@@ -199,9 +199,37 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
       return res.status(400).json({ erro: 'Campos obrigatórios faltando' });
     }
 
+    const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+    if (!HORA_REGEX.test(hora_inicio) || !HORA_REGEX.test(hora_fim)) {
+      return res.status(400).json({ erro: 'Formato de horário inválido (use HH:MM)' });
+    }
+
+    // ✅ movido para ANTES do BEGIN
+    if (hora_fim <= hora_inicio) {
+      return res.status(400).json({ erro: 'O horário de término deve ser depois do início' });
+    }
+
     const solicitanteAdLogin = req.session.adLogin || null;
 
-    await client.query('BEGIN');
+    await client.query('BEGIN');   // ✅ um único BEGIN
+
+    // serializa reservas concorrentes da mesma sala/dia
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`${sala}|${data}`]);
+
+    const conflito = await client.query(
+      `SELECT to_char(hora_inicio,'HH24:MI') AS inicio, to_char(hora_fim,'HH24:MI') AS fim
+         FROM agendamentos
+        WHERE sala_id = $1 AND data = $2
+          AND hora_inicio < $4 AND hora_fim > $3
+        LIMIT 1`,
+      [sala, data, hora_inicio, hora_fim]
+    );
+
+    if (conflito.rows.length > 0) {
+      await client.query('ROLLBACK');
+      const c = conflito.rows[0];
+      return res.status(409).json({ erro: `Horário indisponível: já existe reserva das ${c.inicio} às ${c.fim}.` });
+    }
 
     // 1. Busca o usuário pelo nome; se não existir, cria (agora salvando o email também)
     let usuarioResult = await client.query(
@@ -224,7 +252,7 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
       usuario_id = novoUsuario.rows[0].id;
     }
 
-    
+
     const tipo_evento_id = assunto;
 
     // 3. Insere o agendamento
@@ -240,7 +268,7 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
 
     const result = await client.query(insertQuery, params);
 
-    
+
     const detalhesResult = await client.query(
       `SELECT 
          u.nome AS nome,
@@ -262,7 +290,7 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
 
     await client.query('COMMIT');
 
-   
+
     const detalhes = detalhesResult.rows[0];
     if (detalhes.email) {
       try {
@@ -357,7 +385,7 @@ function requireAuth(req, res, next) {
 app.get('/api/agendamentos/minhas', requireAuth, async (req, res) => {
   try {
     const adLogin = req.session.adLogin;
- 
+
     const query = `
       SELECT
         a.id,

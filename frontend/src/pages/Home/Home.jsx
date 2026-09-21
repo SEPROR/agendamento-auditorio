@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Calendar, User, Tag, CheckCircle2, AlertCircle, Info, Mail } from "lucide-react";
-import { ASSUNTOS } from "../../constants.js";
+import { ASSUNTOS, HOUR_START, HOUR_END } from "../../constants.js";
+import { findConflict, toMinutes } from "../../helpers";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import SelectField from "../../components/SelectField";
@@ -23,7 +24,7 @@ const Home = () => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState(null);
+  // const [selectedSlot, setSelectedSlot] = useState(null);
   const [enviando, setEnviando] = useState(false);
 
   // Dados vindos do backend
@@ -132,6 +133,30 @@ const Home = () => {
     fetchSalas();
   }, []);
 
+
+    // ALTERADO: a busca de agendamentos virou uma função reutilizável,
+  //    para poder recarregar a lista quando o backend responder conflito (409).
+  const carregarBookings = async (salaId) => {
+    if (!salaId) {
+      setBookings([]);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/agendamentos?sala_id=${salaId}`);
+ 
+      if (!res.ok) {
+        throw new Error(`Erro ao buscar agendamentos: ${res.status}`);
+      }
+ 
+      const data = await res.json();
+      setBookings(data);
+    } catch (err) {
+      console.error("Erro ao buscar agendamentos:", err);
+      setBookings([]);
+    }
+  };
+
+
   // Busca os agendamentos da sala selecionada, para popular o calendário
   useEffect(() => {
     if (!form.sala) {
@@ -164,20 +189,23 @@ const Home = () => {
 
   const handleSelectSala = (salaId) => {
     setForm((p) => ({ ...p, sala: salaId, data: "", hora_inicio: "", hora_fim: "" }));
-    setSelectedSlot(null);
     setErrors((p) => ({ ...p, sala: undefined, data: undefined, hora_inicio: undefined }));
   };
 
   const handleSelectDate = (date) => {
     setForm((p) => ({ ...p, data: date, hora_inicio: "", hora_fim: "" }));
-    setSelectedSlot(null);
     if (errors.data) setErrors((p) => ({ ...p, data: undefined }));
   };
 
-  const handleSelectSlot = (slot) => {
-    setSelectedSlot(slot);
-    setForm((p) => ({ ...p, hora_inicio: slot.inicio, hora_fim: slot.fim }));
-    if (errors.hora_inicio) setErrors((p) => ({ ...p, hora_inicio: undefined, hora_fim: undefined }));
+  // const handleSelectSlot = (slot) => {
+  //   setSelectedSlot(slot);
+  //   setForm((p) => ({ ...p, hora_inicio: slot.inicio, hora_fim: slot.fim }));
+  //   if (errors.hora_inicio) setErrors((p) => ({ ...p, hora_inicio: undefined, hora_fim: undefined }));
+  // };
+
+  const handleChangeHora = (field, value) => {
+    setForm((p) => ({ ...p, [field]: value }));
+    setErrors((p) => ({ ...p, hora_inicio: undefined, hora_fim: undefined }));
   };
 
   const validate = () => {
@@ -192,7 +220,21 @@ const Home = () => {
     if (!form.assunto) e.assunto = "Selecione o tipo de evento";
     if (!form.sala) e.sala = "Selecione uma sala";
     if (!form.data) e.data = "Selecione uma data no calendário";
-    if (!form.hora_inicio) e.hora_inicio = "Selecione um horário disponível";
+
+    //    ordem, expediente e conflito com reservas já existentes.
+    if (!form.hora_inicio || !form.hora_fim) {
+      e.hora_inicio = "Informe o horário de início e de término";
+    } else if (toMinutes(form.hora_fim) <= toMinutes(form.hora_inicio)) {
+      e.hora_inicio = "O término deve ser depois do início";
+    } else if (
+      toMinutes(form.hora_inicio) < HOUR_START * 60 ||
+      toMinutes(form.hora_fim) > HOUR_END * 60
+    ) {
+      e.hora_inicio = "Horário fora do expediente";
+    } else if (form.data && findConflict(bookings, form.data, form.hora_inicio, form.hora_fim)) {
+      e.hora_inicio = "Esse horário conflita com uma reserva existente";
+    }
+ 
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -224,24 +266,26 @@ const Home = () => {
 
       if (!res.ok) {
         const erroBody = await res.json().catch(() => null);
-        throw new Error(erroBody?.erro || "Falha ao salvar agendamento");
+        // ALTERADO: guarda o status no erro para tratar o 409 (conflito) no catch
+        const erro = new Error(erroBody?.erro || "Falha ao salvar agendamento");
+        erro.status = res.status;
+        throw erro;
       }
 
       // sucesso
       setSubmitted(true);
 
-      // Atualiza a lista de agendamentos da sala, refletindo a nova reserva
-      try {
-        const refreshed = await fetch(`${API_URL}/api/agendamentos?sala_id=${form.sala}`);
-        if (refreshed.ok) {
-          setBookings(await refreshed.json());
-        }
-      } catch (refreshErr) {
-        console.error("Erro ao atualizar agendamentos após envio:", refreshErr);
-      }
+       //ALTERADO: usa a função reutilizável
+      await carregarBookings(form.sala);
     } catch (err) {
       console.error(err);
       setErrors((p) => ({ ...p, geral: err.message || "Não foi possível confirmar a reserva. Tente novamente." }));
+ 
+      // ➕ NOVO: se alguém reservou o mesmo horário antes, recarrega a lista
+      //    para o usuário ver o que ficou ocupado
+      if (err.status === 409) {
+        await carregarBookings(form.sala);
+      }
     } finally {
       setEnviando(false);
     }
@@ -251,12 +295,14 @@ const Home = () => {
     // Mantém o nome do usuário logado ao resetar o form
     setForm((p) => ({ ...EMPTY_FORM, nome: p.nome }));
     setErrors({});
-    setSelectedSlot(null);
     setSubmitted(false);
   };
 
   const selectedSala = salas.find((s) => s.id === form.sala);
   const isHall = selectedSala?.nome === "Hall";
+
+  // ➕ NOVO: true quando início e término já estão preenchidos
+  const horarioCompleto = Boolean(form.hora_inicio && form.hora_fim);
 
   return (
     <div className={styles.page}>
@@ -272,7 +318,7 @@ const Home = () => {
         <main className={styles.main}>
           <div className={styles.container}>
             <div>
-              <div className={styles.sectionHeader}>              
+              <div className={styles.sectionHeader}>
                 {/* <h2 className={styles.sectionTitle}>Dados do agendamento</h2> */}
               </div>
 
@@ -301,14 +347,14 @@ const Home = () => {
                     placeholder={carregandoSetores ? "Carregando..." : "Selecione o setor"}
                     error={errors.setor}
                   />
-                  
+
                   <InputField label="E-mail" icon={Mail} type="email" value={form.email}
                     onChange={set("email")} placeholder="Ex: ana.silva@gmail.com" error={errors.email} />
 
                 </div>
 
-                {/* Tipo de evento */}
-                {/* <div className={styles.card}>
+                {/* Tipo de evento  */}
+                 <div className={styles.card}>
                   <p className={styles.cardLabel}>Tipo de evento</p>
                   <SelectField
                     label="Assunto / finalidade"
@@ -319,7 +365,7 @@ const Home = () => {
                     placeholder={carregandoTipo ? "Carregando..." : "Selecione o tipo de evento"}
                     error={errors.assunto}
                   />
-                </div> */}
+                </div>
 
                 {/* Salas */}
                 <div className={`${styles.card} ${styles.cardTight}`}>
@@ -338,13 +384,14 @@ const Home = () => {
                   )}
                 </div>
 
-                {/* Calendário */}
+                 {/* Calendário */}
                 <div className={`${styles.calendarCard} ${!form.sala ? styles.calendarCardDisabled : ""}`}>
                   <div className={styles.calendarHeader}>
-                     <div className={styles.calendarHeaderRow}>
-                    </div> 
+                    <div className={styles.calendarHeaderRow}>
+                    </div>
                     <p className={styles.calendarTitle}>
-                      Selecione data e horário
+                      {/* ✏️ ALTERADO: texto do título (antes: "Selecione data e horário") */}
+                      Selecione a data e informe o horário
                       {selectedSala && (
                         <span className={styles.calendarTitleSala}>
                           — {selectedSala.nome}
@@ -352,44 +399,49 @@ const Home = () => {
                       )}
                     </p>
                   </div>
-
+ 
                   {!form.sala && (
                     <div className={styles.infoBox}>
                       <Info size={14} className={styles.infoIcon} />
                       <p className={styles.infoText}>Selecione uma sala acima para liberar o calendário.</p>
                     </div>
                   )}
-
+ 
                   {form.data && (
-                    <div className={`${styles.dateSummary} ${form.hora_inicio ? styles.dateSummarySelected : ""}`}>
-                      <Calendar size={14} className={form.hora_inicio ? styles.dateSummaryIconSelected : styles.dateSummaryIcon} />
+                    // ✏️ ALTERADO: usa horarioCompleto (início E término) em vez de só hora_inicio
+                    <div className={`${styles.dateSummary} ${horarioCompleto ? styles.dateSummarySelected : ""}`}>
+                      <Calendar size={14} className={horarioCompleto ? styles.dateSummaryIconSelected : styles.dateSummaryIcon} />
                       <div className={styles.dateSummaryContent}>
                         <p className={styles.dateSummaryDate}>
                           {new Date(form.data + "T00:00:00").toLocaleDateString("pt-BR", {
                             weekday: "long", day: "2-digit", month: "long", year: "numeric",
                           })}
                         </p>
-                        {form.hora_inicio ? (
+                        {horarioCompleto ? (
                           <p className={styles.dateSummaryTime}>
                             {form.hora_inicio} – {form.hora_fim}
                           </p>
                         ) : (
-                          <p className={styles.dateSummaryHint}>Selecione um horário abaixo</p>
+                          // ✏️ ALTERADO: texto da dica (antes: "Selecione um horário abaixo")
+                          <p className={styles.dateSummaryHint}>Informe o início e o término abaixo</p>
                         )}
                       </div>
-                      {form.hora_inicio && <CheckCircle2 size={14} className={styles.dateSummaryCheck} />}
+                      {horarioCompleto && <CheckCircle2 size={14} className={styles.dateSummaryCheck} />}
                     </div>
                   )}
-
+ 
+                  {/* ✏️ ALTERADO: props novas (horaInicio, horaFim, onChangeHora)
+                      ❌ REMOVIDAS: selectedSlot e onSelectSlot */}
                   <CalendarPanel
                     selectedDate={form.data}
                     onSelectDate={handleSelectDate}
-                    selectedSlot={selectedSlot}
-                    onSelectSlot={handleSelectSlot}
+                    horaInicio={form.hora_inicio}
+                    horaFim={form.hora_fim}
+                    onChangeHora={handleChangeHora}
                     isHall={isHall}
                     bookings={bookings}
                   />
-
+ 
                   {errors.data && (
                     <p className={`${styles.errorText} ${styles.errorTextMt3}`}>
                       <AlertCircle size={11} /> {errors.data}

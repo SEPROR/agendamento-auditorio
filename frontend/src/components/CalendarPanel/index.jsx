@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Info, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { HOUR_START, HOUR_END, PT_MONTHS, PT_DAYS } from "../../constants";
 import {
   fmt, isWeekend, isHallAllowed,
-  isSlotBooked, getBookingForSlot,
   isDayFullyBooked, hasAnyBooking, pad,
+  getDayBookings, findConflict, toMinutes,
 } from "../../helpers";
 import styles from "./index.module.css";
 
@@ -14,11 +14,19 @@ const LEGEND_ITEMS = [
   { dotClass: "dotSelected", label: "Selecionado" },
 ];
 
-export function CalendarPanel({ selectedDate, onSelectDate, selectedSlot, onSelectSlot, isHall, bookings = [] }) {
+export function CalendarPanel({
+  selectedDate,
+  onSelectDate,
+  horaInicio = "",
+  horaFim = "",
+  onChangeHora,
+  isHall,
+  bookings = [],
+}) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-// cursor guarda o mês/ano atual exibido no calendário
+  // cursor guarda o mês/ano atual exibido no calendário
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return { year: d.getFullYear(), month: d.getMonth() };
@@ -47,9 +55,38 @@ export function CalendarPanel({ selectedDate, onSelectDate, selectedSlot, onSele
     return { year: y, month: m };
   });
 
-  const canGoPrev  = new Date(year, month, 1) > today; 
-  const hours      = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
+  const canGoPrev  = new Date(year, month, 1) > today;
   const selDayDate = selectedDate ? new Date(selectedDate + "T00:00:00") : null;
+
+  // Agendamentos do dia selecionado, ordenados por horário de início
+  const dayBookings = useMemo(() => {
+    if (!selectedDate) return [];
+    return getDayBookings(bookings, selectedDate)
+      .slice()
+      .sort((a, b) => toMinutes(a.inicio) - toMinutes(b.inicio));
+  }, [bookings, selectedDate]);
+
+  // Mensagem de erro em tempo real, enquanto o usuário digita
+  const timeError = useMemo(() => {
+    if (!selectedDate || !horaInicio || !horaFim) return null;
+
+    if (toMinutes(horaFim) <= toMinutes(horaInicio)) {
+      return "O horário de término deve ser depois do início.";
+    }
+    if (
+      toMinutes(horaInicio) < HOUR_START * 60 ||
+      toMinutes(horaFim) > HOUR_END * 60
+    ) {
+      return `Horário permitido: ${pad(HOUR_START)}:00 às ${pad(HOUR_END)}:00.`;
+    }
+    const conflito = findConflict(bookings, selectedDate, horaInicio, horaFim);
+    if (conflito) {
+      return `Horário indisponível: já reservado das ${conflito.inicio} às ${conflito.fim} (${conflito.nome}).`;
+    }
+    return null;
+  }, [bookings, selectedDate, horaInicio, horaFim]);
+
+  const timeOk = horaInicio && horaFim && !timeError;
 
   return (
     <div className={styles.container}>
@@ -150,49 +187,71 @@ export function CalendarPanel({ selectedDate, onSelectDate, selectedSlot, onSele
       {selectedDate ? (
         <div className={styles.slotsSection}>
           <p className={styles.slotsTitle}>
-            Horários —{" "}
+            Horário —{" "}
             {selDayDate?.toLocaleDateString("pt-BR", {
               weekday: "long", day: "2-digit", month: "short",
             })}
           </p>
-          <div className={styles.slotsList}>
-            {hours.map((h) => {
-              const booked  = isSlotBooked(bookings, selectedDate, h);
-              const booking = getBookingForSlot(bookings, selectedDate, h);
-              const slotIni = `${pad(h)}:00`;
-              const slotFim = `${pad(h + 1)}:00`;
-              const isSel   = selectedSlot?.inicio === slotIni && selectedSlot?.fim === slotFim;
 
-              const slotClass = `${styles.slotButton} ${
-                booked ? styles.slotBooked : isSel ? styles.slotSelected : styles.slotDefault
-              }`;
+          {/* Horários já ocupados no dia */}
+          {dayBookings.length > 0 ? (
+            <div className={styles.busyBox}>
+              <p className={styles.busyTitle}>Já reservado neste dia:</p>
+              {dayBookings.map((b, i) => (
+                <div key={`${b.inicio}-${b.fim}-${i}`} className={styles.busyItem}>
+                  <span className={styles.busyTime}>{b.inicio} – {b.fim}</span>
+                  <span className={styles.busyInfo}>{b.nome} · {b.assunto}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className={styles.freeDayText}>Nenhum horário reservado neste dia.</p>
+          )}
 
-              return (
-                <button key={h} type="button" disabled={booked}
-                  onClick={() => onSelectSlot({ inicio: slotIni, fim: slotFim })}
-                  className={slotClass}
-                >
-                  <span className={styles.slotTime}>
-                    {slotIni} – {slotFim}
-                  </span>
-                  {booked ? (
-                    <span className={styles.slotBookedInfo}>{booking?.nome} · {booking?.assunto}</span>
-                  ) : isSel ? (
-                    <span className={styles.slotSelectedInfo}>
-                      <CheckCircle2 size={11} /> Selecionado
-                    </span>
-                  ) : (
-                    <span className={styles.slotAvailable}>Disponível</span>
-                  )}
-                </button>
-              );
-            })}
+          {/* Campos de início e término */}
+          <div className={styles.timeRow}>
+            <label className={styles.timeField}>
+              Início
+              <input
+                type="time"
+                step="900"
+                value={horaInicio}
+                min={`${pad(HOUR_START)}:00`}
+                max={`${pad(HOUR_END)}:00`}
+                onChange={(e) => onChangeHora("hora_inicio", e.target.value)}
+                className={`${styles.timeInput} ${timeError ? styles.timeInputError : ""}`}
+              />
+            </label>
+            <label className={styles.timeField}>
+              Término
+              <input
+                type="time"
+                step="900"
+                value={horaFim}
+                min={`${pad(HOUR_START)}:00`}
+                max={`${pad(HOUR_END)}:00`}
+                onChange={(e) => onChangeHora("hora_fim", e.target.value)}
+                className={`${styles.timeInput} ${timeError ? styles.timeInputError : ""}`}
+              />
+            </label>
           </div>
+
+          {timeError && (
+            <p className={styles.timeError}>
+              <Info size={11} /> {timeError}
+            </p>
+          )}
+
+          {timeOk && (
+            <p className={styles.timeOk}>
+              Horário disponível: {horaInicio} – {horaFim}
+            </p>
+          )}
         </div>
       ) : (
         <div className={styles.emptyState}>
           <Info size={14} className={styles.emptyStateIcon} />
-          <p className={styles.emptyStateText}>Selecione um dia no calendário para ver os horários disponíveis.</p>
+          <p className={styles.emptyStateText}>Selecione um dia no calendário para escolher o horário.</p>
         </div>
       )}
     </div>

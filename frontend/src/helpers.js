@@ -13,17 +13,10 @@ export function isWeekend(date) {
   return day === 0 || day === 6;
 }
 
-// export function isHallAllowed(date) {
-//   const day = date.getDate();
-//   return day >= 28 || day <= 16;
-// }
-
 export function isHallAllowed(date) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Determina o mês/ano de referência da janela (o mês do "dia 28" que a inicia).
-  // Se hoje ainda não passou do dia 17, a janela vigente começou no mês anterior.
   let startYear  = today.getFullYear();
   let startMonth = today.getMonth();
 
@@ -36,7 +29,7 @@ export function isHallAllowed(date) {
   }
 
   const windowStart = new Date(startYear, startMonth, 28);
-  const windowEnd   = new Date(startYear, startMonth + 1, 16); // JS ajusta o overflow de mês automaticamente
+  const windowEnd   = new Date(startYear, startMonth + 1, 16);
 
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -49,31 +42,32 @@ export function toMinutes(t) {
   return h * 60 + min;
 }
 
-export function isSlotBooked(bookings, date, hour) {
-  return bookings.some((b) => {
-    if (b.date !== date) return false;
-    const start = toMinutes(b.inicio);
-    const end   = toMinutes(b.fim);
-    return hour * 60 >= start && hour * 60 < end;
-  });
-}
-
-export function getBookingForSlot(bookings, date, hour) {
-  return bookings.find((b) => {
-    if (b.date !== date) return false;
-    const start = toMinutes(b.inicio);
-    const end   = toMinutes(b.fim);
-    return hour * 60 >= start && hour * 60 < end;
-  });
-}
-
-export function isDayFullyBooked(bookings, date) {
-  const dayBookings = bookings.filter((b) => b.date === date);
-  let booked = 0;
-  for (const b of dayBookings) booked += toMinutes(b.fim) - toMinutes(b.inicio);
-  return booked >= (HOUR_END - HOUR_START) * 60;
-}
-
 export function hasAnyBooking(bookings, date) {
   return bookings.some((b) => b.date === date);
 }
+
+export const getDayBookings = (bookings, dateStr) =>
+  bookings.filter((b) => b.date === dateStr);
+
+// retorna o agendamento em conflito (ou undefined)
+export const findConflict = (bookings, dateStr, inicio, fim) => {
+  const ini = toMinutes(inicio);
+  const end = toMinutes(fim);
+  return getDayBookings(bookings, dateStr).find(
+    (b) => ini < toMinutes(b.fim) && end > toMinutes(b.inicio)
+  );
+};
+
+// dia lotado = os agendamentos cobrem todo o expediente, sem lacunas
+export const isDayFullyBooked = (bookings, dateStr) => {
+  const sorted = getDayBookings(bookings, dateStr)
+    .map((b) => [toMinutes(b.inicio), toMinutes(b.fim)])
+    .sort((a, b) => a[0] - b[0]);
+
+  let cursor = HOUR_START * 60;
+  for (const [ini, fim] of sorted) {
+    if (ini > cursor) return false; // achou lacuna
+    cursor = Math.max(cursor, fim);
+  }
+  return cursor >= HOUR_END * 60;
+};
