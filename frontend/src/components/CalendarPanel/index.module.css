@@ -1,3 +1,12 @@
+/*
+  Tema claro do CalendarPanel
+  Paleta alinhada ao restante do site:
+  - verde institucional  #2d6a3f (destaque / selecionado)
+  - texto principal      #1f2d24
+  - texto secundário     #5f6b64
+  - superfícies          #ffffff / #f5f5f5
+*/
+
 .container {
   display: flex;
   flex-direction: column;
@@ -22,7 +31,7 @@
 }
 
 .navButton:hover {
-  background-color: #111c2d;
+  background-color: rgba(45, 106, 63, 0.1);
 }
 
 .navButton:disabled {
@@ -30,14 +39,18 @@
   cursor: not-allowed;
 }
 
+.navButton:disabled:hover {
+  background-color: transparent;
+}
+
 .navIcon {
-  color: #6b8ab0;
+  color: #2d6a3f;
 }
 
 .monthLabel {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #e8f0fe;
+  color: #1f2d24;
 }
 
 /* Aviso Hall */
@@ -47,20 +60,20 @@
   gap: 0.5rem;
   padding: 0.625rem 0.75rem;
   border-radius: 6px;
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  background-color: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  background-color: #fef3c7;
   margin-bottom: 1rem;
 }
 
 .hallWarningIcon {
-  color: #f59e0b;
+  color: #b45309;
   flex-shrink: 0;
   margin-top: 0.125rem;
 }
 
 .hallWarningText {
   font-size: 11px;
-  color: rgba(245, 158, 11, 0.9);
+  color: #92400e;
   line-height: 1.6;
 }
 
@@ -73,11 +86,10 @@
 
 .weekHeaderCell {
   text-align: center;
-  font-family: monospace;
-  font-size: 9px;
-  letter-spacing: 0.05em;
+  font-family: "Inter", sans-serif;
+  font-size: 11px;
   text-transform: uppercase;
-  color: #6b8ab0;
+  color: #2a2b2a;
   padding: 0.25rem 0;
 }
 
@@ -104,35 +116,36 @@
 }
 
 .dayCellDisabled {
-  color: rgba(107, 138, 176, 0.3);
+  color: rgba(95, 107, 100, 0.4);
   cursor: not-allowed;
 }
 
 .dayCellHallBlocked {
-  color: rgba(107, 138, 176, 0.2);
+  color: rgba(95, 107, 100, 0.35);
   cursor: not-allowed;
-  background-color: rgba(17, 28, 45, 0.4);
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .dayCellSelected {
-  background-color: #3b82f6;
+  background-color: #2d6a3f;
   color: #ffffff;
   font-weight: 600;
   cursor: pointer;
 }
 
 .dayCellFull {
-  color: rgba(107, 138, 176, 0.5);
+  color: rgba(95, 107, 100, 0.65);
+  background-color: rgba(220, 38, 38, 0.06);
   cursor: not-allowed;
 }
 
 .dayCellDefault {
-  color: #e8f0fe;
+  color: #1f2d24;
   cursor: pointer;
 }
 
 .dayCellDefault:hover {
-  background-color: #111c2d;
+  background-color: rgba(45, 106, 63, 0.12);
 }
 
 .todayDot {
@@ -143,7 +156,7 @@
   width: 4px;
   height: 4px;
   border-radius: 9999px;
-  background-color: #3b82f6;
+  background-color: #2d6a3f;
 }
 
 .hasBookingDot {
@@ -153,7 +166,7 @@
   width: 4px;
   height: 4px;
   border-radius: 9999px;
-  background-color: #f59e0b;
+  background-color: #d97706;
 }
 
 .fullDot {
@@ -163,7 +176,7 @@
   width: 4px;
   height: 4px;
   border-radius: 9999px;
-  background-color: #ef4444;
+  background-color: #dc2626;
 }
 
 /* Legenda */
@@ -188,28 +201,28 @@
 }
 
 .dotWarning {
-  background-color: #f59e0b;
+  background-color: #d97706;
 }
 
 .dotDanger {
-  background-color: #ef4444;
+  background-color: #dc2626;
 }
 
 .dotSelected {
-  background-color: #3b82f6;
+  background-color: #2d6a3f;
 }
 
 .legendLabel {
   font-size: 10px;
-  color: #6b8ab0;
+  color: #47504b;
 }
 
 .legendHallBlockedBox {
   width: 8px;
   height: 8px;
   border-radius: 2px;
-  background-color: rgba(17, 28, 45, 0.4);
-  border: 1px solid rgba(107, 138, 176, 0.2);
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(95, 107, 100, 0.35);
 }
 
 /* Horários */
@@ -220,11 +233,12 @@
 }
 
 .slotsTitle {
-  font-family: monospace;
+  font-family: "Inter", sans-serif;
   font-size: 10px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #3b82f6;
+  color: #2d6a3f;
+  font-weight: 600;
 }
 
 .slotsList {
@@ -250,41 +264,46 @@
 }
 
 .slotBooked {
-  background-color: rgba(239, 68, 68, 0.08);
-  border-color: rgba(239, 68, 68, 0.2);
-  color: #6b8ab0;
+  background-color: rgba(220, 38, 38, 0.06);
+  border-color: rgba(220, 38, 38, 0.25);
+  color: #5f6b64;
   cursor: not-allowed;
 }
 
 .slotSelected {
-  background-color: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.5);
-  color: #10b981;
+  background-color: rgba(45, 106, 63, 0.12);
+  border-color: rgba(45, 106, 63, 0.55);
+  color: #2d6a3f;
+  font-weight: 600;
 }
 
 .slotDefault {
-  background-color: #111c2d;
-  border-color: rgba(59, 130, 246, 0.1);
-  color: #e8f0fe;
+  background-color: #ffffff;
+  border-color: rgba(45, 106, 63, 0.18);
+  color: #1f2d24;
   cursor: pointer;
 }
 
 .slotDefault:hover {
-  border-color: rgba(16, 185, 129, 0.35);
-  background-color: rgba(16, 185, 129, 0.05);
+  border-color: rgba(45, 106, 63, 0.5);
+  background-color: rgba(45, 106, 63, 0.06);
 }
 
 .slotTime {
-  font-family: monospace;
+  font-family: "Inter", sans-serif;
   font-size: 10px;
   flex-shrink: 0;
   width: 5rem;
-  color: #6b8ab0;
+  color: #5f6b64;
+}
+
+.slotSelected .slotTime {
+  color: #2d6a3f;
 }
 
 .slotBookedInfo {
   flex: 1;
-  color: #6b8ab0;
+  color: #5f6b64;
 }
 
 .slotSelectedInfo {
@@ -296,7 +315,7 @@
 
 .slotAvailable {
   flex: 1;
-  color: rgba(16, 185, 129, 0.7);
+  color: #2d6a3f;
 }
 
 /* Empty state */
@@ -306,16 +325,16 @@
   gap: 0.5rem;
   padding: 0.75rem;
   border-radius: 6px;
-  border: 1px solid rgba(59, 130, 246, 0.12);
-  background-color: rgba(17, 28, 45, 0.5);
+  border: 1px solid rgba(45, 106, 63, 0.18);
+  background-color: #ffffff;
 }
 
 .emptyStateIcon {
-  color: #3b82f6;
+  color: #2d6a3f;
   flex-shrink: 0;
 }
 
 .emptyStateText {
   font-size: 0.75rem;
-  color: #6b8ab0;
+  color: #5f6b64;
 }

@@ -5,15 +5,15 @@
   gap: 0.375rem;
   padding: 1rem;
   border-radius: 6px;
-  border: 1px solid rgba(59, 130, 246, 0.15);
-  background-color: #111c2d;
+  border: 1.1px solid #2d6a3f4b;
+  background-color: #f5f5f5;
   text-align: left;
   transition: all 200ms ease;
   cursor: pointer;
 }
 
 .card:hover {
-  border-color: rgba(59, 130, 246, 0.4);
+  background-color: rgba(11, 65, 47, 0.1);
 }
 
 .cardSelected {
@@ -36,7 +36,7 @@
 }
 
 .buildingIcon {
-  color: #3b82f6;
+  color: #2d6a3f;
 }
 
 .buildingIconSelected {
@@ -46,7 +46,7 @@
 .name {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #e8f0fe;
+  color: #2d6a3f;
   margin-top: 0.125rem;
 }
 
@@ -56,7 +56,7 @@
   gap: 0.25rem;
   font-family: monospace;
   font-size: 10px;
-  color: #6b8ab0;
+  color: #3d794f;
 }
 
 .hallBadge {

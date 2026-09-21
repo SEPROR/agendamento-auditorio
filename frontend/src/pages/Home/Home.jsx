@@ -272,12 +272,8 @@ const Home = () => {
         <main className={styles.main}>
           <div className={styles.container}>
             <div>
-              <div className={styles.sectionHeader}>
-                <div className={styles.sectionHeaderRow}>
-                  <div className={styles.sectionHeaderLine} />
-                  <span className={styles.sectionHeaderLabel}>Formulário</span>
-                </div>
-                <h2 className={styles.sectionTitle}>Dados do agendamento</h2>
+              <div className={styles.sectionHeader}>              
+                {/* <h2 className={styles.sectionTitle}>Dados do agendamento</h2> */}
               </div>
 
               <form onSubmit={handleSubmit} noValidate className={styles.form}>
@@ -295,8 +291,7 @@ const Home = () => {
                     readOnly
                     disabled={carregandoUsuario}
                   />
-                  <InputField label="E-mail" icon={Mail} type="email" value={form.email}
-                    onChange={set("email")} placeholder="Ex: ana.silva@gmail.com" error={errors.email} />
+
                   <SelectField
                     label="Setor"
                     icon={Tag}
@@ -306,10 +301,14 @@ const Home = () => {
                     placeholder={carregandoSetores ? "Carregando..." : "Selecione o setor"}
                     error={errors.setor}
                   />
+                  
+                  <InputField label="E-mail" icon={Mail} type="email" value={form.email}
+                    onChange={set("email")} placeholder="Ex: ana.silva@gmail.com" error={errors.email} />
+
                 </div>
 
                 {/* Tipo de evento */}
-                <div className={styles.card}>
+                {/* <div className={styles.card}>
                   <p className={styles.cardLabel}>Tipo de evento</p>
                   <SelectField
                     label="Assunto / finalidade"
@@ -320,7 +319,7 @@ const Home = () => {
                     placeholder={carregandoTipo ? "Carregando..." : "Selecione o tipo de evento"}
                     error={errors.assunto}
                   />
-                </div>
+                </div> */}
 
                 {/* Salas */}
                 <div className={`${styles.card} ${styles.cardTight}`}>
@@ -342,10 +341,8 @@ const Home = () => {
                 {/* Calendário */}
                 <div className={`${styles.calendarCard} ${!form.sala ? styles.calendarCardDisabled : ""}`}>
                   <div className={styles.calendarHeader}>
-                    <div className={styles.calendarHeaderRow}>
-                      <div className={styles.calendarHeaderLine} />
-                      <span className={styles.calendarHeaderLabel}>Disponibilidade</span>
-                    </div>
+                     <div className={styles.calendarHeaderRow}>
+                    </div> 
                     <p className={styles.calendarTitle}>
                       Selecione data e horário
                       {selectedSala && (

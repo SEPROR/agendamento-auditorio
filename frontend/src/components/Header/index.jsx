@@ -30,7 +30,13 @@ export default function Header() {
     <header className={styles.header}>
       <div className={styles.inner}>
         <div className={styles.brand}>
-          <div className={styles.crest}>AM</div>
+          <div className={styles.crest}>
+            <img
+              src="/images/logo.png"
+              alt="Logo Secretaria de Produção Rural"
+              className={styles.brandLogo} // ou styles['brand-logo']
+            />
+          </div>
           <div className={styles.brandText}>
             <span className={styles.overline}>Governo do Estado do Amazonas</span>
             <span className={styles.name}>Secretaria de Produção Rural</span>

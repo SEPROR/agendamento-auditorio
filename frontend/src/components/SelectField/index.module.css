@@ -9,7 +9,7 @@
   font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
-  color: #d4d4d4;
+  color: #5e5e5e;
 }
 
 .selectContainer {
@@ -23,8 +23,8 @@
   gap: 0.75rem;
   padding: 0.625rem 0.75rem;
   border-radius: 6px;
-  background-color: #2a2724;
-  border: 1px solid rgba(59, 130, 246, 0.15);
+  background-color: #e9e9e9;
+  border: 1px solid rgba(37, 41, 38, 0.15);
   transition: border-color 150ms ease;
   text-align: left;
   cursor: pointer;
@@ -35,7 +35,7 @@
 }
 
 .triggerOpen {
-  border-color: rgba(19, 80, 29, 0.15);
+  border-color: rgba(80, 19, 19, 0.15);
 }
 
 .triggerOpen:hover {
@@ -51,7 +51,7 @@
 }
 
 .icon {
-  color: #3d9e96;
+  color: #2d6a3f;
   flex-shrink: 0;
 }
 
@@ -66,7 +66,7 @@
 }
 
 .chevron {
-  color: #6b8ab0;
+  color: #2d6a3f;
   transition: transform 200ms ease;
 }
 
@@ -80,8 +80,8 @@
   width: 100%;
   margin-top: 0.25rem;
   border-radius: 6px;
-  background-color: #0d1825;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background-color: #2d6a3f;
+  border: 1px solid rgba(19, 80, 29, 0.15);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
   overflow: hidden;
   max-height: 13rem;
