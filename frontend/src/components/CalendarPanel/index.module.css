@@ -339,8 +339,16 @@
   color: #5f6b64;
 }
 
-.busyBox { border: 1px solid rgba(220,38,38,.25); background: rgba(220,38,38,.06);
-  border-radius: 6px; padding: .5rem .75rem; display: flex; flex-direction: column; gap: .25rem; }
+.busyBox { 
+  border: 1px solid rgba(220,38,38,.25); 
+  background: rgba(220,38,38,.06);
+  border-radius: 6px; 
+  padding: .5rem .75rem; 
+  display: flex; 
+  flex-direction: column; 
+  gap: .25rem;
+ }
+ 
 .busyTitle { font-size: 11px; font-weight: 600; color: #991b1b; }
 .busyItem { display: flex; gap: .75rem; font-size: .75rem; }
 .timeRow { display: flex; gap: .75rem; }

@@ -387,7 +387,7 @@ const Home = () => {
                   )}
  
                   {form.data && (
-                    // ✏️ ALTERADO: usa horarioCompleto (início E término) em vez de só hora_inicio
+                    // ALTERADO: usa horarioCompleto (início E término) em vez de só hora_inicio
                     <div className={`${styles.dateSummary} ${horarioCompleto ? styles.dateSummarySelected : ""}`}>
                       <Calendar size={14} className={horarioCompleto ? styles.dateSummaryIconSelected : styles.dateSummaryIcon} />
                       <div className={styles.dateSummaryContent}>
@@ -409,8 +409,7 @@ const Home = () => {
                     </div>
                   )}
  
-                  {/* ✏️ ALTERADO: props novas (horaInicio, horaFim, onChangeHora)
-                      ❌ REMOVIDAS: selectedSlot e onSelectSlot */}
+                  {/* ALTERADO: props novas (horaInicio, horaFim, onChangeHora) */}
                   <CalendarPanel
                     selectedDate={form.data}
                     onSelectDate={handleSelectDate}

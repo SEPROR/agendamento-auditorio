@@ -70,8 +70,12 @@ export default function LoginPage() {
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.header}>
-          <p className={styles.eyebrow}>ACESSE PARA AGENDAR</p>
+          <img
+            src="/images/logo.png"
+            alt="Logo Secretaria de Produção Rural"
+             />
           <h1 className={styles.title}>Bem-vindo</h1>
+          <p className={styles.eyebrow}>ACESSE PARA AGENDAR</p>
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit} noValidate>
