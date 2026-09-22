@@ -16,7 +16,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const EMPTY_FORM = {
-  nome: "", email: "", setor: "", assunto: "", sala: "",
+  nome: "", email: "", assunto: "", sala: "",
   data: "", hora_inicio: "", hora_fim: "", observacoes: "",
 };
 
@@ -28,16 +28,16 @@ const Home = () => {
   const [enviando, setEnviando] = useState(false);
 
   // Dados vindos do backend
-  const [setores, setSetores] = useState([]);
   const [tipo, setTipo] = useState([]);
   const [salas, setSalas] = useState([]);
   const [bookings, setBookings] = useState([]);
-  const [carregandoSetores, setCarregandoSetores] = useState(true);
+  const [setorNome, setSetorNome] = useState(''); // NOVO — vem da sessão, não é mais escolhido
   const [carregandoTipo, setCarregandoTipo] = useState(true);
   const [carregandoSalas, setCarregandoSalas] = useState(true);
-  const [carregandoUsuario, setCarregandoUsuario] = useState(true); // NOVO
+  const [carregandoUsuario, setCarregandoUsuario] = useState(true);
 
-  // NOVO: busca o usuário logado no AD e preenche o nome (travado)
+  // Busca o usuário logado no AD e o setor já detectado no login (pela OU do AD),
+  // e trava os dois campos (nome e setor) para o usuário.
   useEffect(() => {
     async function fetchUsuarioLogado() {
       try {
@@ -57,6 +57,7 @@ const Home = () => {
 
         if (data.autenticado && data.usuario) {
           setForm((p) => ({ ...p, nome: data.usuario }));
+          setSetorNome(data.setorNome || 'Setor não identificado (verifique com o administrador)'); // NOVO
         } else {
           window.location.href = "/login";
         }
@@ -70,26 +71,8 @@ const Home = () => {
     fetchUsuarioLogado();
   }, []);
 
-  useEffect(() => {
-    async function fetchSetores() {
-      try {
-        const res = await fetch(`${API_URL}/api/setores`);
-
-        if (!res.ok) {
-          throw new Error(`Erro ao buscar setores: ${res.status}`);
-        }
-
-        const data = await res.json();
-        setSetores(data);
-      } catch (err) {
-        console.error("Erro ao buscar setores:", err);
-        setSetores([]); // garante que fica um array vazio, evitando o crash do .map
-      } finally {
-        setCarregandoSetores(false);
-      }
-    }
-    fetchSetores();
-  }, []);
+  // removido: useEffect que buscava a lista de setores em /api/setores
+  // (o setor agora vem pronto de /api/auth/status, detectado no login pela OU do AD)
 
   useEffect(() => {
     async function fetchTipo() {
@@ -216,7 +199,7 @@ const Home = () => {
     } else if (!EMAIL_REGEX.test(form.email.trim())) {
       e.email = "Informe um e-mail válido";
     }
-    if (!form.setor) e.setor = "Selecione um setor";
+    // removido: validação de form.setor — o setor agora vem automático da sessão
     if (!form.assunto) e.assunto = "Selecione o tipo de evento";
     if (!form.sala) e.sala = "Selecione uma sala";
     if (!form.data) e.data = "Selecione uma data no calendário";
@@ -254,7 +237,7 @@ const Home = () => {
         body: JSON.stringify({
           nome: form.nome,
           email: form.email,
-          setor_id: form.setor,
+          // setor_id removido — o backend usa o setor da sessão (detectado no login via AD)
           assunto: form.assunto,
           sala: form.sala,
           data: form.data,
@@ -281,8 +264,7 @@ const Home = () => {
       console.error(err);
       setErrors((p) => ({ ...p, geral: err.message || "Não foi possível confirmar a reserva. Tente novamente." }));
  
-      // ➕ NOVO: se alguém reservou o mesmo horário antes, recarrega a lista
-      //    para o usuário ver o que ficou ocupado
+      
       if (err.status === 409) {
         await carregarBookings(form.sala);
       }
@@ -301,7 +283,7 @@ const Home = () => {
   const selectedSala = salas.find((s) => s.id === form.sala);
   const isHall = selectedSala?.nome === "Hall";
 
-  // ➕ NOVO: true quando início e término já estão preenchidos
+  
   const horarioCompleto = Boolean(form.hora_inicio && form.hora_fim);
 
   return (
@@ -328,24 +310,21 @@ const Home = () => {
                 <div className={styles.card}>
                   <p className={styles.cardLabel}>Responsável</p>
                   <InputField
-                    label="Nome completo"
-                    icon={User}
-                    value={form.nome}
-                    onChange={set("nome")}
-                    placeholder={carregandoUsuario ? "Carregando..." : "Ex: Ana Beatriz Silva"}
-                    error={errors.nome}
-                    readOnly
-                    disabled={carregandoUsuario}
-                  />
+                  label="Nome completo"
+                  icon={User}
+                  value={form.nome}
+                  placeholder={carregandoUsuario ? "Carregando..." : "Ex: Ana Beatriz Silva"}
+                  error={errors.nome}
+                  readOnly
+                  disabled={carregandoUsuario}
+/>
 
-                  <SelectField
+                  <InputField
                     label="Setor"
                     icon={Tag}
-                    value={form.setor}
-                    onChange={set("setor")}
-                    options={setores.map((s) => ({ value: s.id, label: s.nome }))}
-                    placeholder={carregandoSetores ? "Carregando..." : "Selecione o setor"}
-                    error={errors.setor}
+                    value={carregandoUsuario ? "Carregando..." : setorNome}
+                    readOnly
+                    disabled={carregandoUsuario}
                   />
 
                   <InputField label="E-mail" icon={Mail} type="email" value={form.email}

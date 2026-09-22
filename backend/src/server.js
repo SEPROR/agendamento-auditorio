@@ -74,7 +74,7 @@ async function getADClient() {
     url: process.env.AD_URL,
     domainDN: process.env.AD_DOMAIN_DN,
     searchBase: process.env.AD_SEARCH_BASE,
-    searchAttributes: ['displayName', 'mail', 'memberOf', 'sAMAccountName'],
+    searchAttributes: ['displayName', 'mail', 'memberOf', 'sAMAccountName', 'distinguishedName'],
     connectTimeout: 5000,
     timeout: 5000,
     reconnect: true,
@@ -113,6 +113,55 @@ function normalizeUsername(input) {
   }
 
   return user;
+}
+
+// ==============================================
+// SETOR AUTOMÁTICO A PARTIR DA OU DO AD (NOVO)
+// ==============================================
+// O DN do usuário no AD tem o formato:
+//   CN=Nome da Pessoa,OU=SETOR,OU=USUARIOS,OU=..., DC=...
+// A primeira OU logo após o CN é o setor da pessoa.
+
+// Extrai o nome do setor a partir do DN do usuário
+function extrairSetorDoDN(dn) {
+  if (!dn) return null;
+
+  const partes = dn.split(',').map((p) => p.trim());
+  const primeiraOU = partes.find((p) => p.toUpperCase().startsWith('OU='));
+
+  if (!primeiraOU) return null;
+
+  return primeiraOU.substring(3).trim();
+}
+
+// Busca o setor no banco pelo nome (case-insensitive).
+// Se não existir ainda, cria automaticamente — assim novos setores
+// que apareçam no AD não exigem nenhum cadastro manual.
+async function buscarOuCriarSetor(nomeSetorAD) {
+  if (!nomeSetorAD) return null;
+
+  try {
+    const existente = await pool.query(
+      'SELECT id, nome FROM setores WHERE UPPER(nome) = UPPER($1)',
+      [nomeSetorAD]
+    );
+
+    if (existente.rows.length > 0) {
+      return existente.rows[0];
+    }
+
+    const novo = await pool.query(
+      'INSERT INTO setores (nome) VALUES ($1) RETURNING id, nome',
+      [nomeSetorAD]
+    );
+
+    console.log(`🆕 Setor "${nomeSetorAD}" criado automaticamente a partir do AD`);
+    return novo.rows[0];
+
+  } catch (err) {
+    console.error('❌ Erro ao buscar/criar setor a partir do AD:', err.message);
+    return null;
+  }
 }
 
 // rotas
@@ -183,9 +232,7 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
   const client = await pool.connect();
   try {
     const {
-      nome,
-      email,          // <- novo campo vindo do formulário
-      setor_id,
+      email,
       assunto,
       sala,
       data,
@@ -194,8 +241,23 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
       observacoes,
     } = req.body;
 
+    // Obtém Nome e Setor direto da sessão do AD
+    const nome = req.session.usuario;
+    const setor_id = req.session.setorId;
+
+    if (!nome) {
+      return res.status(400).json({ erro: 'Não foi possível identificar seu nome de usuário no Active Directory.' });
+    }
+
+    if (!setor_id) {
+      return res.status(400).json({
+        erro: 'Não foi possível identificar seu setor no Active Directory. Contate o administrador.'
+      });
+    }
+
+    // ... resto das validações e do fluxo do agendamento ...
     // Validação básica
-    if (!nome || !setor_id || !assunto || !sala || !data || !hora_inicio || !hora_fim) {
+    if (!nome || !assunto || !sala || !data || !hora_inicio || !hora_fim) {
       return res.status(400).json({ erro: 'Campos obrigatórios faltando' });
     }
 
@@ -240,10 +302,11 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
     let usuario_id;
     if (usuarioResult.rows.length > 0) {
       usuario_id = usuarioResult.rows[0].id;
-      // Atualiza o email se ele veio vazio/diferente antes
-      if (email) {
-        await client.query('UPDATE usuarios SET email = $1 WHERE id = $2', [email, usuario_id]);
-      }
+      // Atualiza o email e o setor (o setor pode ter mudado desde o último agendamento)
+      await client.query(
+        'UPDATE usuarios SET email = COALESCE($1, email), setor_id = $2 WHERE id = $3',
+        [email, setor_id, usuario_id]
+      );
     } else {
       const novoUsuario = await client.query(
         'INSERT INTO usuarios (nome, setor_id, email) VALUES ($1, $2, $3) RETURNING id',
@@ -440,17 +503,28 @@ app.post('/api/login-ad', async (req, res) => {
       ? groups.some((g) => typeof g === 'string' && g.toLowerCase() === targetAdminGroup)
       : false;
 
+    // NOVO: setor 100% automático, extraído da OU do usuário no AD
+    const dnUsuario = user.dn || user.distinguishedName;
+    const nomeSetorAD = extrairSetorDoDN(dnUsuario);
+    const setorInfo = await buscarOuCriarSetor(nomeSetorAD);
+
+    console.log('Setor detectado automaticamente do AD:', nomeSetorAD, '-> setor_id:', setorInfo?.id);
+
     req.session.autenticado = true;
-    req.session.usuario = user.displayName || user.sAMAccountName;
+    req.session.usuario = user.displayName || user.sAMAccountName || user.cn; // Nome do usuário
     req.session.adLogin = (user.sAMAccountName || loginNormalizado || '').toLowerCase();
     req.session.isAdmin = isAdmin;
     req.session.nivelAcesso = isAdmin ? 'ADMIN' : 'USER';
+    req.session.setorId = setorInfo ? setorInfo.id : null;
+    req.session.setorNome = setorInfo ? setorInfo.nome : null;
 
     return res.json({
       success: true,
       message: 'Login realizado com sucesso',
       isAdmin,
       usuario: user.displayName || user.sAMAccountName,
+      setorId: req.session.setorId,
+      setorNome: req.session.setorNome,
       redirectTo: isAdmin ? '/agendamentos/relatorio' : '/agendamentos'
     });
 
@@ -469,6 +543,8 @@ app.get('/api/auth/status', (req, res) => {
       autenticado: true,
       usuario: req.session.usuario,
       isAdmin: req.session.isAdmin,
+      setorId: req.session.setorId || null,     // NOVO
+      setorNome: req.session.setorNome || null, // NOVO
     });
   }
   return res.status(401).json({ autenticado: false });
