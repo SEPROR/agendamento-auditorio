@@ -8,7 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 // Só confirmado e cancelado — sem "pendente"
 const STATUS_CONFIG = {
   confirmado: { label: "Confirmado", className: styles.statusConfirmado, dot: styles.dotConfirmado },
-  cancelado:  { label: "Cancelado",  className: styles.statusCancelado,  dot: styles.dotCancelado  },
+  cancelado: { label: "Cancelado", className: styles.statusCancelado, dot: styles.dotCancelado },
 };
 
 function CalendarIcon() {
@@ -36,15 +36,6 @@ function RoomIcon() {
       <rect x="1.5" y="1.5" width="13" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
       <path d="M5 14.5V9h6v5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
       <rect x="6" y="4" width="4" height="3" rx="0.5" stroke="currentColor" strokeWidth="1.2" />
-    </svg>
-  );
-}
-
-function TagIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={styles.iconCyan}>
-      <path d="M2 2h5.5l6.5 6.5-5.5 5.5L2 7.5V2z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-      <circle cx="5" cy="5" r="1" fill="currentColor" />
     </svg>
   );
 }
@@ -91,13 +82,13 @@ function mapAgendamento(raw) {
 
   return {
     id: raw.id,
+    dataISO: raw.data,
     dia: dataObj.toLocaleDateString("pt-BR"),
     diaSemana: capitalize(dataObj.toLocaleDateString("pt-BR", { weekday: "long" })),
     hora: raw.hora_inicio,
     horaFim: raw.hora_fim,
     sala: raw.sala,
     capacidade: raw.capacidade ? `${raw.capacidade} pessoas` : "—",
-    assunto: raw.assunto,
     responsavel: raw.responsavel,
     observacoes: raw.observacoes || "Nenhuma observação informada.",
     // Sem coluna de status no banco ainda: tudo que existe é tratado como confirmado.
@@ -110,6 +101,36 @@ export default function MeusAgendamentos() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
   const [expandido, setExpandido] = useState(null);
+  const [cancelandoId, setCancelandoId] = useState(null); // id em processo de cancelamento
+  const [confirmandoId, setConfirmandoId] = useState(null); // id aguardando confirmação
+  const [erroCancelar, setErroCancelar] = useState(null);
+
+  async function cancelarAgendamento(id) {
+    setCancelandoId(id);
+    setErroCancelar(null);
+
+    try {
+      const res = await fetch(`${API_URL}/api/agendamentos/${id}/cancelar`, {
+        method: "PATCH",
+        credentials: "include",
+      });
+
+      if (res.status === 401) throw new Error("Sessão expirada. Faça login novamente.");
+      if (res.status === 403) throw new Error("Você não pode cancelar esta reserva.");
+      if (!res.ok) throw new Error(`Erro ao cancelar: ${res.status}`);
+
+      // Atualiza localmente, sem recarregar a lista
+      setAgendamentos((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, status: "cancelado" } : a))
+      );
+      setConfirmandoId(null);
+    } catch (err) {
+      console.error("Erro ao cancelar agendamento:", err);
+      setErroCancelar(err.message || "Não foi possível cancelar a reserva.");
+    } finally {
+      setCancelandoId(null);
+    }
+  }
 
   useEffect(() => {
     async function carregar() {
@@ -147,7 +168,7 @@ export default function MeusAgendamentos() {
 
       <main className={styles.main}>
         <div className={styles.pageHeader}>
-          
+
           <h1 className={styles.pageTitle}>Meus Agendamentos</h1>
           <p className={styles.pageSubtitle}>Gerencie e acompanhe suas reservas de salas</p>
         </div>
@@ -163,6 +184,9 @@ export default function MeusAgendamentos() {
           {agendamentos.map((ag) => {
             const status = STATUS_CONFIG[ag.status] ?? STATUS_CONFIG.confirmado;
             const isOpen = expandido === ag.id;
+
+            const fim = new Date(`${ag.dataISO}T${ag.horaFim}`);
+            const podeCancelar = ag.status === "confirmado" && fim > new Date();
 
             return (
               <div
@@ -185,17 +209,17 @@ export default function MeusAgendamentos() {
                         {status.label}
                       </span>
                     </div>
-                    <p className={styles.cardAssunto}>{ag.assunto}</p>
+
+                    <p className={styles.cardTitle}>{ag.sala}</p>
                     <div className={styles.cardDetails}>
                       <span className={styles.cardDetail}>
                         <ClockIcon />
                         {ag.hora} – {ag.horaFim}
                       </span>
                       <span className={styles.cardDetail}>
-                        <RoomIcon />
-                        {ag.sala}
+                        <PeopleIcon />
+                        {ag.capacidade}
                       </span>
-                  
                     </div>
                   </div>
                   <span
@@ -211,6 +235,46 @@ export default function MeusAgendamentos() {
                 {isOpen && (
                   <div className={styles.expandedBody}>
                     <div className={styles.expandedGrid}>
+
+                      {podeCancelar && (
+                        <div className={`${styles.actions} ${styles.colSpan2}`}>
+                          {confirmandoId === ag.id ? (
+                            <>
+                              <span className={styles.confirmText}>Cancelar esta reserva?</span>
+                              <button
+                                className={styles.btnDanger}
+                                disabled={cancelandoId === ag.id}
+                                onClick={() => cancelarAgendamento(ag.id)}
+                              >
+                                {cancelandoId === ag.id ? "Cancelando..." : "Sim, cancelar"}
+                              </button>
+                              <button
+                                className={styles.btnGhost}
+                                disabled={cancelandoId === ag.id}
+                                onClick={() => setConfirmandoId(null)}
+                              >
+                                Voltar
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              className={styles.btnDangerOutline}
+                              onClick={() => {
+                                setErroCancelar(null);
+                                setConfirmandoId(ag.id);
+                              }}
+                            >
+                              Cancelar reserva
+                            </button>
+                          )}
+                          {erroCancelar && confirmandoId === ag.id && (
+                            <p className={styles.stateError} style={{ padding: 0, width: "100%" }}>
+                              {erroCancelar}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       <div className={styles.detailBox}>
                         <p className={styles.detailBoxLabel}>
                           <CalendarIcon /> Data e Horário
@@ -231,13 +295,6 @@ export default function MeusAgendamentos() {
                         </p>
                       </div>
 
-                      <div className={`${styles.detailBox} ${styles.colSpan2}`}>
-                        <p className={styles.detailBoxLabel}>
-                          <TagIcon /> Assunto / Finalidade
-                        </p>
-                        <p className={styles.detailValue}>{ag.assunto}</p>
-                      </div>
-
                       <div className={`${styles.detailBoxObs} ${styles.colSpan2}`}>
                         <p className={styles.detailBoxLabelSecondary}>
                           <NoteIcon /> Observações
@@ -252,7 +309,7 @@ export default function MeusAgendamentos() {
           })}
         </div>
       </main>
-      <Footer/>
+      <Footer />
     </div>
   );
 }

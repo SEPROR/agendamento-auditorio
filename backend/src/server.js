@@ -233,7 +233,6 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
   try {
     const {
       email,
-      assunto,
       sala,
       data,
       hora_inicio,
@@ -257,7 +256,7 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
 
     // ... resto das validações e do fluxo do agendamento ...
     // Validação básica
-    if (!nome || !assunto || !sala || !data || !hora_inicio || !hora_fim) {
+    if (!nome || !sala || !data || !hora_inicio || !hora_fim) {
       return res.status(400).json({ erro: 'Campos obrigatórios faltando' });
     }
 
@@ -315,19 +314,16 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
       usuario_id = novoUsuario.rows[0].id;
     }
 
-
-    const tipo_evento_id = assunto;
-
     // 3. Insere o agendamento
     // "sala" já vem como ID numérico da sala (o <select>/SalaCard usa sala.id).
 
     const insertQuery = `
       INSERT INTO agendamentos 
-        (usuario_id, tipo_evento_id, sala_id, data, hora_inicio, hora_fim, observacoes, solicitante_ad_login)
+        (usuario_id, sala_id, data, hora_inicio, hora_fim, observacoes, solicitante_ad_login)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `;
-    const params = [usuario_id, tipo_evento_id, sala, data, hora_inicio, hora_fim, observacoes, solicitanteAdLogin];
+    const params = [usuario_id, sala, data, hora_inicio, hora_fim, observacoes, solicitanteAdLogin];
 
     const result = await client.query(insertQuery, params);
 
@@ -452,7 +448,6 @@ app.get('/api/agendamentos/minhas', requireAuth, async (req, res) => {
     const query = `
       SELECT
         a.id,
-        t.tipo AS assunto,
         sa.nome AS sala,
         sa.capacidade AS capacidade,
         u.nome AS responsavel,
@@ -463,7 +458,6 @@ app.get('/api/agendamentos/minhas', requireAuth, async (req, res) => {
       FROM agendamentos a
       JOIN usuarios u ON u.id = a.usuario_id
       JOIN salas sa ON sa.id = a.sala_id
-      JOIN tipos_evento t ON t.id = a.tipo_evento_id
       WHERE a.solicitante_ad_login = $1
       ORDER BY a.data DESC, a.hora_inicio DESC
     `;

@@ -16,7 +16,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const EMPTY_FORM = {
-  nome: "", email: "", assunto: "", sala: "",
+  nome: "", email: "", sala: "",
   data: "", hora_inicio: "", hora_fim: "", observacoes: "",
 };
 
@@ -28,7 +28,6 @@ const Home = () => {
   const [enviando, setEnviando] = useState(false);
 
   // Dados vindos do backend
-  const [tipo, setTipo] = useState([]);
   const [salas, setSalas] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [setorNome, setSetorNome] = useState(''); // NOVO — vem da sessão, não é mais escolhido
@@ -73,27 +72,6 @@ const Home = () => {
 
   // removido: useEffect que buscava a lista de setores em /api/setores
   // (o setor agora vem pronto de /api/auth/status, detectado no login pela OU do AD)
-
-  useEffect(() => {
-    async function fetchTipo() {
-      try {
-        const res = await fetch(`${API_URL}/api/tipo`);
-
-        if (!res.ok) {
-          throw new Error(`Erro ao buscar Tipo: ${res.status}`);
-        }
-
-        const data = await res.json();
-        setTipo(data);
-      } catch (err) {
-        console.error("Erro ao buscar tipo:", err);
-        setTipo([]); // garante que fica um array vazio, evitando o crash do .map
-      } finally {
-        setCarregandoTipo(false);
-      }
-    }
-    fetchTipo();
-  }, []);
 
   useEffect(() => {
     async function fetchSalas() {
@@ -200,7 +178,6 @@ const Home = () => {
       e.email = "Informe um e-mail válido";
     }
     // removido: validação de form.setor — o setor agora vem automático da sessão
-    if (!form.assunto) e.assunto = "Selecione o tipo de evento";
     if (!form.sala) e.sala = "Selecione uma sala";
     if (!form.data) e.data = "Selecione uma data no calendário";
 
@@ -238,7 +215,6 @@ const Home = () => {
           nome: form.nome,
           email: form.email,
           // setor_id removido — o backend usa o setor da sessão (detectado no login via AD)
-          assunto: form.assunto,
           sala: form.sala,
           data: form.data,
           hora_inicio: form.hora_inicio,
@@ -330,20 +306,6 @@ const Home = () => {
                   <InputField label="E-mail" icon={Mail} type="email" value={form.email}
                     onChange={set("email")} placeholder="Ex: ana.silva@gmail.com" error={errors.email} />
 
-                </div>
-
-                {/* Tipo de evento  */}
-                 <div className={styles.card}>
-                  <p className={styles.cardLabel}>Tipo de evento</p>
-                  <SelectField
-                    label="Assunto / finalidade"
-                    icon={Tag}
-                    value={form.assunto}
-                    onChange={set("assunto")}
-                    options={tipo.map((t) => ({ value: t.id, label: t.tipo }))}
-                    placeholder={carregandoTipo ? "Carregando..." : "Selecione o tipo de evento"}
-                    error={errors.assunto}
-                  />
                 </div>
 
                 {/* Salas */}

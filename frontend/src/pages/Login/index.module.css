@@ -80,7 +80,7 @@
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 14px;
   font-weight: 400;
-  color: #1e4128;
+  color: #000000;
   background-color: rgba(236, 236, 236, 0.144);
   border: 1px solid #3f7c50;
   border-radius: 4px;
@@ -148,7 +148,7 @@
 }
 
 .submitButton:hover:not(:disabled) {
-  background-color: #174ca1;
+  background-color: #2d6a3f;
 }
 
 .submitButton:disabled {
