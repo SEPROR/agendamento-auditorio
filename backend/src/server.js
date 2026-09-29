@@ -14,7 +14,8 @@ app.use(cors({
   origin: [
     "http://localhost:5173",
   ],
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 }));
 
 // 2. Parser de JSON para requisições POST/PUT
@@ -202,6 +203,7 @@ app.get('/api/salas', async (req, res) => {
   }
 });
 
+// Horários ocupados (usado na tela de agendar). Ignora cancelados.
 app.get('/api/agendamentos', async (req, res) => {
   try {
     const { sala_id } = req.query;
@@ -214,11 +216,12 @@ app.get('/api/agendamentos', async (req, res) => {
         to_char(a.hora_fim, 'HH24:MI') AS fim
       FROM agendamentos a
       JOIN usuarios u ON u.id = a.usuario_id
+      WHERE a.status <> 'cancelado'
     `;
 
     const params = [];
     if (sala_id) {
-      query += ' WHERE a.sala_id = $1';
+      query += ' AND a.sala_id = $1';
       params.push(sala_id);
     }
     query += ' ORDER BY a.data, a.hora_inicio';
@@ -273,10 +276,12 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
     // serializa reservas concorrentes da mesma sala/dia
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`${sala}|${data}`]);
 
+    // Conflito: ignora agendamentos cancelados
     const conflito = await client.query(
       `SELECT to_char(hora_inicio,'HH24:MI') AS inicio, to_char(hora_fim,'HH24:MI') AS fim
          FROM agendamentos
         WHERE sala_id = $1 AND data = $2
+          AND status <> 'cancelado'
           AND hora_inicio < $4 AND hora_fim > $3
         LIMIT 1`,
       [sala, data, hora_inicio, hora_fim]
@@ -310,8 +315,7 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
       usuario_id = novoUsuario.rows[0].id;
     }
 
-    // Insere o agendamento (7 colunas = 7 placeholders = 7 params)
-    // "sala" já vem como ID numérico da sala.
+    
     const insertQuery = `
       INSERT INTO agendamentos 
         (usuario_id, sala_id, data, hora_inicio, hora_fim, observacoes, solicitante_ad_login)
@@ -396,6 +400,7 @@ app.post('/api/usuarios', async (req, res) => {
   }
 });
 
+// Relatório (admin): mantém os cancelados e mostra o status
 app.get('/api/agendamentos/relatorio', async (req, res) => {
   try {
     const query = `
@@ -407,7 +412,8 @@ app.get('/api/agendamentos/relatorio', async (req, res) => {
         to_char(a.data, 'YYYY-MM-DD') AS data,
         to_char(a.hora_inicio, 'HH24:MI') AS hora_inicio,
         to_char(a.hora_fim, 'HH24:MI') AS hora_fim,
-        a.observacoes
+        a.observacoes,
+        a.status
       FROM agendamentos a
       JOIN usuarios u ON u.id = a.usuario_id
       JOIN setores s ON s.id = u.setor_id
@@ -422,9 +428,8 @@ app.get('/api/agendamentos/relatorio', async (req, res) => {
   }
 });
 
-// GET /api/agendamentos/minhas
-// Retorna só os agendamentos do usuário logado (casando pelo login do AD
-// salvo em agendamentos.solicitante_ad_login).
+
+
 app.get('/api/agendamentos/minhas', requireAuth, async (req, res) => {
   try {
     const adLogin = req.session.adLogin;
@@ -438,7 +443,8 @@ app.get('/api/agendamentos/minhas', requireAuth, async (req, res) => {
         to_char(a.data, 'YYYY-MM-DD') AS data,
         to_char(a.hora_inicio, 'HH24:MI') AS hora_inicio,
         to_char(a.hora_fim, 'HH24:MI') AS hora_fim,
-        a.observacoes
+        a.observacoes,
+        a.status
       FROM agendamentos a
       JOIN usuarios u ON u.id = a.usuario_id
       JOIN salas sa ON sa.id = a.sala_id
@@ -450,6 +456,45 @@ app.get('/api/agendamentos/minhas', requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ erro: 'Erro ao buscar seus agendamentos' });
+  }
+});
+
+
+// Cancela a reserva (dono ou admin). Não apaga: só marca status = 'cancelado'.
+app.patch('/api/agendamentos/:id/cancelar', requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+  const adLogin = req.session.adLogin;
+  const isAdmin = req.session.isAdmin;
+
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ erro: 'ID inválido' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, solicitante_ad_login, status FROM agendamentos WHERE id = $1',
+      [id]
+    );
+    const ag = rows[0];
+
+    if (!ag) return res.status(404).json({ erro: 'Agendamento não encontrado' });
+
+    const dono = (ag.solicitante_ad_login || '').toLowerCase() === adLogin;
+    if (!dono && !isAdmin) {
+      return res.status(403).json({ erro: 'Sem permissão' });
+    }
+    if (ag.status === 'cancelado') {
+      return res.status(409).json({ erro: 'Agendamento já cancelado' });
+    }
+
+    await pool.query(
+      "UPDATE agendamentos SET status = 'cancelado' WHERE id = $1",
+      [id]
+    );
+    res.json({ id, status: 'cancelado' });
+  } catch (err) {
+    console.error('Erro ao cancelar agendamento:', err);
+    res.status(500).json({ erro: 'Erro ao cancelar agendamento' });
   }
 });
 
@@ -480,7 +525,7 @@ app.post('/api/login-ad', async (req, res) => {
       ? groups.some((g) => typeof g === 'string' && g.toLowerCase() === targetAdminGroup)
       : false;
 
-    // setor 100% automático, extraído da OU do usuário no AD
+    
     const dnUsuario = user.dn || user.distinguishedName;
     const nomeSetorAD = extrairSetorDoDN(dnUsuario);
     const setorInfo = await buscarOuCriarSetor(nomeSetorAD);
