@@ -1,25 +1,16 @@
-
 .modalOverlay {
 position: fixed;
 inset: 0;
 z-index: 1000;
-
 display: flex;
 align-items: center;
 justify-content: center;
-
 padding: 24px;
-
 background: rgba(15, 23, 42, 0.55);
 backdrop-filter: blur(4px);
-
 opacity: 0;
 visibility: hidden;
 pointer-events: none;
-
-transition:
-opacity 0.25s ease,
-visibility 0.25s ease;
 }
 
 .modalOverlay.open {
@@ -32,22 +23,16 @@ pointer-events: auto;
 width: 100%;
 max-width: 720px;
 max-height: calc(100vh - 48px);
-
 display: flex;
 flex-direction: column;
-
 overflow: hidden;
-
-background: #111827 ;
-border: 1px solid rgba(34,211,238,.15);
+background: #f1f1f1 ;
+border: 1px solid rgba(19, 80, 29, 0.15);
 border-radius: 18px;
-
 box-shadow:
-0 25px 50px -12px rgba(15, 23, 42, 0.25),
-0 8px 24px rgba(15, 23, 42, 0.08);
-
+0 25px 50px -12px rgba(19, 80, 29, 0.15),
+0 8px 24px rgba(14, 59, 22, 0.15);;
 transform: translateY(16px) scale(0.98);
-
 transition: transform 0.25s ease;
 }
 
@@ -65,14 +50,12 @@ gap: 20px;
 
 padding: 26px 28px 22px;
 
-border-bottom: 1px solid rgba(34,211,238,.15);;
+border-bottom: 1px solid rgba(19, 80, 29, 0.15);
 }
 
 .overline {
 margin-bottom: 6px;
-
-color: #22d3ee;
-
+color: #353535;
 font-size: 12px;
 font-weight: 700;
 letter-spacing: 0.08em;
@@ -81,9 +64,7 @@ text-transform: uppercase;
 
 .modalTitle {
 margin: 0;
-
-color: #ffffff;
-
+color: #5e5e5e;
 font-size: 24px;
 font-weight: 700;
 line-height: 1.25;
@@ -93,27 +74,22 @@ line-height: 1.25;
 display: flex;
 align-items: center;
 justify-content: center;
-
 width: 36px;
 height: 36px;
 flex-shrink: 0;
-
-color: #111827; 
-
+color: #000000; 
 background: transparent;
 border: 0;
 border-radius: 8px;
-
 cursor: pointer;
-
 transition:
 color 0.2s ease,
 background 0.2s ease;
 }
 
 .modalClose:hover {
-color: #0f172a;
-background: rgba(34,211,238,.15);;
+color: #203f2a;
+background: rgba(19, 80, 29, 0.15);
 }
 
 .modalClose:focus-visible {
@@ -180,15 +156,12 @@ gap: 18px 24px;
 .modalField {
 min-width: 0;
 padding-bottom: 14px;
-
-border-bottom: 1px solid rgba(34,211,238,.15);;
+border-bottom: 1px solid rgba(19, 80, 29, 0.15);
 }
 
 .modalFieldLabel {
 margin-bottom: 6px;
-
-color: #64a4c4 ;
-
+color: #5e5e5e ;
 font-size: 11px;
 font-weight: 700;
 letter-spacing: 0.06em;
@@ -197,9 +170,7 @@ text-transform: uppercase;
 
 .modalFieldValue {
 overflow-wrap: anywhere;
-
-color: #ffffff;
-
+color: #353535;
 font-size: 15px;
 font-weight: 500;
 line-height: 1.5;
@@ -211,27 +182,22 @@ line-height: 1.5;
 display: flex;
 align-items: flex-start;
 gap: 14px;
-
 margin-top: 24px;
 padding: 18px;
-
-background: #111827;
-border: 1px solid rgba(34,211,238,.15);;
+background: #f1f1f1;
+border: 1px solid rgba(19, 80, 29, 0.15);
 border-radius: 12px;
 }
 
 .kmIcon {
 flex-shrink: 0;
 margin-top: 2px;
-
-color: #ffffff;
+color: #2d6a3f;
 }
 
 .kmLabel {
 margin-bottom: 6px;
-
-color: #64a4c4;
-
+color: #353535;
 font-size: 11px;
 font-weight: 700;
 letter-spacing: 0.06em;
@@ -239,7 +205,7 @@ text-transform: uppercase;
 }
 
 .kmValue {
-color: #ffffff;
+color: #5e5e5e;
 
 font-size: 14px;
 line-height: 1.6;
@@ -256,8 +222,8 @@ gap: 12px;
 
 padding: 18px 28px;
 
-border-top: 1px solid rgba(34,211,238,.15);;
-background: #111827;
+border-top: 1px solid rgba(19, 80, 29, 0.15);
+background: #f1f1f1;
 }
 
 .btnOutline,
@@ -285,28 +251,25 @@ transform 0.2s ease;
 }
 
 .btnOutline {
-color: #22d3ee;
-
-background: #111827;
-border: 1px solid rgba(34,211,238,.15);;
+color: #f1f1f1;
+background: #2d6a3f;
+border: 1px solid rgba(19, 80, 29, 0.15);
 }
 
 .btnOutline:hover {
-color: #64a4c4;
-background: #22d3ee23 ;
-
+color: #f1f1f1;
+background: #203f2a ;
 }
 
 .btnPrimary {
-color: #111827;
-
-background: #22d3ee ;
-border: 1px solid #22d3ee;
+color: #f1f1f1;
+background: #2d6a3f;
+border: 1px solid rgba(19, 80, 29, 0.15);
 }
 
 .btnPrimary:hover {
-background: rgba(36, 213, 240, 0.315);
-border-color: rgba(36, 213, 240, 0.315);
+color: #f1f1f1;
+background: #203f2a ;
 }
 
 .btnOutline:active,

@@ -1,3 +1,46 @@
+.modal {
+  background: #f1f1f1;
+  border: 1px solid rgba(19, 80, 29, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-width: 26rem;
+  animation: modalIn 200ms ease both;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.modalOverlay {
+position: fixed;
+inset: 0;
+z-index: 1000;
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 24px;
+background: rgba(15, 23, 42, 0.55);
+backdrop-filter: blur(4px);
+opacity: 0;
+visibility: hidden;
+pointer-events: none;
+}
+
+.modalOverlay.open {
+opacity: 1;
+visibility: visible;
+pointer-events: auto;
+  animation: overlayIn 200ms ease both;
+
+}
+
 .container {
   display: flex;
   flex-direction: column;
@@ -16,8 +59,8 @@
   width: 5rem;
   height: 5rem;
   border-radius: 9999px;
-  background-color: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background-color: rgba(12, 141, 98, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.479);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -31,7 +74,7 @@
   position: absolute;
   inset: 0;
   border-radius: 9999px;
-  background-color: rgba(16, 185, 129, 0.05);
+  background-color: rgba(16, 185, 129, 0.219);
   animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
@@ -52,12 +95,12 @@
 .title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #e8f0fe;
+  color: #353535;
 }
 
 .subtitle {
   font-size: 0.9rem;
-  color: #ad9649;
+  color: #353535;
   max-width: 20rem;
 }
 
@@ -67,13 +110,13 @@
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
-  background-color: #111c2d;
-  border: 1px solid rgba(59, 130, 246, 0.25);
-  color: #3b82f6;
+  background-color: #2d6a3f;
+  border: 1px solid rgba(19, 80, 29, 0.15);
+  color: #f1f1f1;
   transition: background-color 150ms ease;
   cursor: pointer;
 }
 
 .resetButton:hover {
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: #203f2a;
 }

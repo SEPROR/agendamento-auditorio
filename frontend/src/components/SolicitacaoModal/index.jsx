@@ -7,7 +7,6 @@ export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF }) {
     ['Solicitante', solicitacao.solicitante],
     ['Setor', solicitacao.setor],
     ['Sala', solicitacao.sala],
-    ['Assunto', solicitacao.assunto],
     ['Data', solicitacao.data],
     ['Horário', `${solicitacao.horaInicio} – ${solicitacao.horaFim}`],
   ];

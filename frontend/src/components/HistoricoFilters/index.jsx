@@ -43,7 +43,7 @@ export function HistoricoFilters({
           height="16"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#22d3ee"
+          stroke="#2d6a3f"
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"

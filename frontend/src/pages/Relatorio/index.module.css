@@ -6,8 +6,10 @@
   max-width: 1280px;
   margin: 0 auto;
   font-family: "Inter", sans-serif;
-  color: #64a4c4;
+  color: #353535;
   background-color: #F8F9FA;
+  font-size: 15px;
+
 }
 
 .pageTitleRow {
@@ -35,7 +37,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #3b82f6;
+  background: #2d6a3f;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -47,7 +49,7 @@
 }
 
 .btnPrimary:hover {
-  background: #187a87;
+  background: #203f2a;
 }
 
 .card {
@@ -76,7 +78,6 @@
   gap: 6px;
   background: none;
   border: none;
-  color: #2196a6;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -90,5 +91,17 @@
 @media (max-width: 640px) {
   .container {
     padding: 16px;
+  }
+}
+
+.actionsRow {
+  display: flex;
+  justify-content: flex-end; /* use flex-start para alinhar à esquerda */
+}
+
+@media (max-width: 640px) {
+  .actionsRow .btnPrimary {
+    width: 100%;
+    justify-content: center;
   }
 }
