@@ -14,7 +14,8 @@ app.use(cors({
   origin: [
     "http://localhost:5173",
   ],
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 }));
 
 // 2. Parser de JSON para requisições POST/PUT
@@ -44,19 +45,25 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
+/////////////////////////////////
+/// middleware de autenticação ///
+////////////////////////////////
 
+// protege rotas que dependem da sessão (definido ANTES das rotas que usam)
+function requireAuth(req, res, next) {
+  if (req.session && req.session.autenticado) return next();
+  return res.status(401).json({ erro: 'Não autenticado' });
+}
 
 /////////////////////////////////
 /// configuração email ///
 ////////////////////////////////
-
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD,
-
   },
 });
 
@@ -81,7 +88,7 @@ async function getADClient() {
     referrals: { enabled: false }
   });
 
-  // // ADICIONAR ISSO: evita que erros de conexão derrubem o servidor inteiro
+  // evita que erros de conexão derrubem o servidor inteiro
   adInstance.on('error', (err) => {
     console.error('Erro de conexão com o AD:', err.message);
   });
@@ -94,7 +101,7 @@ async function getADClient() {
 
 const AD_ADMIN_GROUP_DN = process.env.AD_ADMIN_GROUP_DN;
 
-// ADICIONAR ISSO: permite o usuário digitar só o username, sem prefixo de organização
+// permite o usuário digitar só o username, sem prefixo de organização
 const AD_ORG_PREFIX = process.env.AD_ORG_PREFIX; // ex: "empresa.com"
 
 function normalizeUsername(input) {
@@ -116,7 +123,7 @@ function normalizeUsername(input) {
 }
 
 // ==============================================
-// SETOR AUTOMÁTICO A PARTIR DA OU DO AD (NOVO)
+// SETOR AUTOMÁTICO A PARTIR DA OU DO AD
 // ==============================================
 // O DN do usuário no AD tem o formato:
 //   CN=Nome da Pessoa,OU=SETOR,OU=USUARIOS,OU=..., DC=...
@@ -196,6 +203,7 @@ app.get('/api/salas', async (req, res) => {
   }
 });
 
+// Horários ocupados (usado na tela de agendar). Ignora cancelados.
 app.get('/api/agendamentos', async (req, res) => {
   try {
     const { sala_id } = req.query;
@@ -208,11 +216,12 @@ app.get('/api/agendamentos', async (req, res) => {
         to_char(a.hora_fim, 'HH24:MI') AS fim
       FROM agendamentos a
       JOIN usuarios u ON u.id = a.usuario_id
+      WHERE a.status <> 'cancelado'
     `;
 
     const params = [];
     if (sala_id) {
-      query += ' WHERE a.sala_id = $1';
+      query += ' AND a.sala_id = $1';
       params.push(sala_id);
     }
     query += ' ORDER BY a.data, a.hora_inicio';
@@ -224,7 +233,6 @@ app.get('/api/agendamentos', async (req, res) => {
     res.status(500).json({ erro: 'Erro ao buscar agendamentos' });
   }
 });
-
 
 app.post('/api/agendamentos', requireAuth, async (req, res) => {
   const client = await pool.connect();
@@ -238,23 +246,20 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
       observacoes,
     } = req.body;
 
-    // Obtém Nome e Setor direto da sessão do AD
+    // Nome e setor vêm da sessão do AD
     const nome = req.session.usuario;
     const setor_id = req.session.setorId;
+    const solicitanteAdLogin = req.session.adLogin || null;
 
     if (!nome) {
       return res.status(400).json({ erro: 'Não foi possível identificar seu nome de usuário no Active Directory.' });
     }
-
     if (!setor_id) {
-      return res.status(400).json({
-        erro: 'Não foi possível identificar seu setor no Active Directory. Contate o administrador.'
-      });
+      return res.status(400).json({ erro: 'Não foi possível identificar seu setor no Active Directory. Contate o administrador.' });
     }
 
-    // ... resto das validações e do fluxo do agendamento ...
-    // Validação básica
-    if (!nome || !sala || !data || !hora_inicio || !hora_fim) {
+    // Validações (antes do BEGIN)
+    if (!sala || !data || !hora_inicio || !hora_fim) {
       return res.status(400).json({ erro: 'Campos obrigatórios faltando' });
     }
 
@@ -262,23 +267,21 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
     if (!HORA_REGEX.test(hora_inicio) || !HORA_REGEX.test(hora_fim)) {
       return res.status(400).json({ erro: 'Formato de horário inválido (use HH:MM)' });
     }
-
-    // ✅ movido para ANTES do BEGIN
     if (hora_fim <= hora_inicio) {
       return res.status(400).json({ erro: 'O horário de término deve ser depois do início' });
     }
 
-    const solicitanteAdLogin = req.session.adLogin || null;
-
-    await client.query('BEGIN');   // ✅ um único BEGIN
+    await client.query('BEGIN');
 
     // serializa reservas concorrentes da mesma sala/dia
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`${sala}|${data}`]);
 
+    // Conflito: ignora agendamentos cancelados
     const conflito = await client.query(
       `SELECT to_char(hora_inicio,'HH24:MI') AS inicio, to_char(hora_fim,'HH24:MI') AS fim
          FROM agendamentos
         WHERE sala_id = $1 AND data = $2
+          AND status <> 'cancelado'
           AND hora_inicio < $4 AND hora_fim > $3
         LIMIT 1`,
       [sala, data, hora_inicio, hora_fim]
@@ -290,9 +293,9 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
       return res.status(409).json({ erro: `Horário indisponível: já existe reserva das ${c.inicio} às ${c.fim}.` });
     }
 
-    // 1. Busca o usuário pelo nome; se não existir, cria (agora salvando o email também)
-    let usuarioResult = await client.query(
-      'SELECT id, email FROM usuarios WHERE nome = $1',
+    // Busca o usuário pelo nome; se não existir, cria
+    const usuarioResult = await client.query(
+      'SELECT id FROM usuarios WHERE nome = $1',
       [nome]
     );
 
@@ -302,29 +305,28 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
       // Atualiza o email e o setor (o setor pode ter mudado desde o último agendamento)
       await client.query(
         'UPDATE usuarios SET email = COALESCE($1, email), setor_id = $2 WHERE id = $3',
-        [email, setor_id, usuario_id]
+        [email || null, setor_id, usuario_id]
       );
     } else {
       const novoUsuario = await client.query(
         'INSERT INTO usuarios (nome, setor_id, email) VALUES ($1, $2, $3) RETURNING id',
-        [nome, setor_id, email]
+        [nome, setor_id, email || null]
       );
       usuario_id = novoUsuario.rows[0].id;
     }
 
-    // 3. Insere o agendamento
-    // "sala" já vem como ID numérico da sala (o <select>/SalaCard usa sala.id).
-
+    
     const insertQuery = `
       INSERT INTO agendamentos 
         (usuario_id, sala_id, data, hora_inicio, hora_fim, observacoes, solicitante_ad_login)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
-    const params = [usuario_id, sala, data, hora_inicio, hora_fim, observacoes, solicitanteAdLogin];
-
+    const params = [
+      usuario_id, sala, data, hora_inicio, hora_fim,
+      observacoes || null, solicitanteAdLogin,
+    ];
     const result = await client.query(insertQuery, params);
-
 
     const detalhesResult = await client.query(
       `SELECT 
@@ -345,21 +347,20 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
 
     await client.query('COMMIT');
 
-
+    // E-mail de confirmação (não derruba o agendamento se falhar)
     const detalhes = detalhesResult.rows[0];
-    if (detalhes.email) {
+    if (detalhes?.email) {
       try {
         await transporter.sendMail({
           from: process.env.GMAIL_USER,
           to: detalhes.email,
-          subject: `Confirmação de agendamento - ${detalhes.assunto}`,
+          subject: `Confirmação de agendamento - ${detalhes.sala}`,
           html: `
             <h2>Olá, ${detalhes.nome}!</h2>
             <p>Seu agendamento foi confirmado com os seguintes detalhes:</p>
             <ul>
               <li><strong>Setor:</strong> ${detalhes.setor}</li>
               <li><strong>Sala:</strong> ${detalhes.sala}</li>
-              <li><strong>Assunto:</strong> ${detalhes.assunto}</li>
               <li><strong>Data:</strong> ${detalhes.data}</li>
               <li><strong>Horário:</strong> ${detalhes.hora_inicio} - ${detalhes.hora_fim}</li>
             </ul>
@@ -372,8 +373,8 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    await client.query('ROLLBACK');
-    console.error(err);
+    try { await client.query('ROLLBACK'); } catch {}
+    console.error('Erro ao criar agendamento:', err);
     res.status(500).json({ erro: 'Erro ao criar agendamento' });
   } finally {
     client.release();
@@ -399,6 +400,7 @@ app.post('/api/usuarios', async (req, res) => {
   }
 });
 
+// Relatório (admin): mantém os cancelados e mostra o status
 app.get('/api/agendamentos/relatorio', async (req, res) => {
   try {
     const query = `
@@ -410,7 +412,8 @@ app.get('/api/agendamentos/relatorio', async (req, res) => {
         to_char(a.data, 'YYYY-MM-DD') AS data,
         to_char(a.hora_inicio, 'HH24:MI') AS hora_inicio,
         to_char(a.hora_fim, 'HH24:MI') AS hora_fim,
-        a.observacoes
+        a.observacoes,
+        a.status
       FROM agendamentos a
       JOIN usuarios u ON u.id = a.usuario_id
       JOIN setores s ON s.id = u.setor_id
@@ -425,16 +428,8 @@ app.get('/api/agendamentos/relatorio', async (req, res) => {
   }
 });
 
-// middleware simples de autenticação — protege rotas que dependem da sessão
-function requireAuth(req, res, next) {
-  if (req.session && req.session.autenticado) return next();
-  return res.status(401).json({ erro: 'Não autenticado' });
-}
 
-// GET /api/agendamentos/minhas
-// Retorna só os agendamentos do usuário logado (casando pelo nome salvo em `usuarios`,
-// já que a tabela usuarios é populada pelo nome digitado no formulário, e não tem
-// FK direta para o login do AD).
+
 app.get('/api/agendamentos/minhas', requireAuth, async (req, res) => {
   try {
     const adLogin = req.session.adLogin;
@@ -448,7 +443,8 @@ app.get('/api/agendamentos/minhas', requireAuth, async (req, res) => {
         to_char(a.data, 'YYYY-MM-DD') AS data,
         to_char(a.hora_inicio, 'HH24:MI') AS hora_inicio,
         to_char(a.hora_fim, 'HH24:MI') AS hora_fim,
-        a.observacoes
+        a.observacoes,
+        a.status
       FROM agendamentos a
       JOIN usuarios u ON u.id = a.usuario_id
       JOIN salas sa ON sa.id = a.sala_id
@@ -464,6 +460,44 @@ app.get('/api/agendamentos/minhas', requireAuth, async (req, res) => {
 });
 
 
+// Cancela a reserva (dono ou admin). Não apaga: só marca status = 'cancelado'.
+app.patch('/api/agendamentos/:id/cancelar', requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+  const adLogin = req.session.adLogin;
+  const isAdmin = req.session.isAdmin;
+
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ erro: 'ID inválido' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, solicitante_ad_login, status FROM agendamentos WHERE id = $1',
+      [id]
+    );
+    const ag = rows[0];
+
+    if (!ag) return res.status(404).json({ erro: 'Agendamento não encontrado' });
+
+    const dono = (ag.solicitante_ad_login || '').toLowerCase() === adLogin;
+    if (!dono && !isAdmin) {
+      return res.status(403).json({ erro: 'Sem permissão' });
+    }
+    if (ag.status === 'cancelado') {
+      return res.status(409).json({ erro: 'Agendamento já cancelado' });
+    }
+
+    await pool.query(
+      "UPDATE agendamentos SET status = 'cancelado' WHERE id = $1",
+      [id]
+    );
+    res.json({ id, status: 'cancelado' });
+  } catch (err) {
+    console.error('Erro ao cancelar agendamento:', err);
+    res.status(500).json({ erro: 'Erro ao cancelar agendamento' });
+  }
+});
+
 /////////////////////
 /// rota login AD////
 /////////////////////
@@ -471,7 +505,7 @@ app.get('/api/agendamentos/minhas', requireAuth, async (req, res) => {
 app.post('/api/login-ad', async (req, res) => {
   const { usuario, senha } = req.body;
 
-  console.log('Recebeu tentativa de login:', usuario)
+  console.log('Recebeu tentativa de login:', usuario);
 
   if (!usuario || !senha) {
     return res.status(400).json({ success: false, error: 'Usuário e senha são obrigatórios' });
@@ -479,8 +513,8 @@ app.post('/api/login-ad', async (req, res) => {
 
   try {
     const ad = await getADClient();
-    const loginNormalizado = normalizeUsername(usuario); // <-- ADICIONADO
-    const user = await ad.authenticate(loginNormalizado, senha); // <-- USA o normalizado
+    const loginNormalizado = normalizeUsername(usuario);
+    const user = await ad.authenticate(loginNormalizado, senha);
 
     const groups = Array.isArray(user.memberOf)
       ? user.memberOf
@@ -491,7 +525,7 @@ app.post('/api/login-ad', async (req, res) => {
       ? groups.some((g) => typeof g === 'string' && g.toLowerCase() === targetAdminGroup)
       : false;
 
-    // NOVO: setor 100% automático, extraído da OU do usuário no AD
+    
     const dnUsuario = user.dn || user.distinguishedName;
     const nomeSetorAD = extrairSetorDoDN(dnUsuario);
     const setorInfo = await buscarOuCriarSetor(nomeSetorAD);
@@ -531,13 +565,12 @@ app.get('/api/auth/status', (req, res) => {
       autenticado: true,
       usuario: req.session.usuario,
       isAdmin: req.session.isAdmin,
-      setorId: req.session.setorId || null,     // NOVO
-      setorNome: req.session.setorNome || null, // NOVO
+      setorId: req.session.setorId || null,
+      setorNome: req.session.setorNome || null,
     });
   }
   return res.status(401).json({ autenticado: false });
 });
-
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Backend rodando na porta ${PORT}`));
