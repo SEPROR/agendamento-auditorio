@@ -203,13 +203,11 @@ app.get('/api/agendamentos', async (req, res) => {
     let query = `
       SELECT 
         u.nome AS nome,
-        t.tipo AS assunto,
         to_char(a.data, 'YYYY-MM-DD') AS date,
         to_char(a.hora_inicio, 'HH24:MI') AS inicio,
         to_char(a.hora_fim, 'HH24:MI') AS fim
       FROM agendamentos a
       JOIN usuarios u ON u.id = a.usuario_id
-      JOIN tipos_evento t ON t.id = a.tipo_evento_id
     `;
 
     const params = [];
@@ -320,7 +318,7 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
     const insertQuery = `
       INSERT INTO agendamentos 
         (usuario_id, sala_id, data, hora_inicio, hora_fim, observacoes, solicitante_ad_login)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
     const params = [usuario_id, sala, data, hora_inicio, hora_fim, observacoes, solicitanteAdLogin];
@@ -334,7 +332,6 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
          u.email AS email,
          s.nome AS setor,
          sa.nome AS sala,
-         t.tipo AS assunto,
          to_char(a.data, 'DD/MM/YYYY') AS data,
          to_char(a.hora_inicio, 'HH24:MI') AS hora_inicio,
          to_char(a.hora_fim, 'HH24:MI') AS hora_fim
@@ -342,7 +339,6 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
        JOIN usuarios u ON u.id = a.usuario_id
        JOIN setores s ON s.id = u.setor_id
        JOIN salas sa ON sa.id = a.sala_id
-       JOIN tipos_evento t ON t.id = a.tipo_evento_id
        WHERE a.id = $1`,
       [result.rows[0].id]
     );
@@ -411,7 +407,6 @@ app.get('/api/agendamentos/relatorio', async (req, res) => {
         u.nome AS solicitante,
         s.nome AS setor,
         sa.nome AS sala,
-        t.tipo AS assunto,
         to_char(a.data, 'YYYY-MM-DD') AS data,
         to_char(a.hora_inicio, 'HH24:MI') AS hora_inicio,
         to_char(a.hora_fim, 'HH24:MI') AS hora_fim,
@@ -420,7 +415,6 @@ app.get('/api/agendamentos/relatorio', async (req, res) => {
       JOIN usuarios u ON u.id = a.usuario_id
       JOIN setores s ON s.id = u.setor_id
       JOIN salas sa ON sa.id = a.sala_id
-      JOIN tipos_evento t ON t.id = a.tipo_evento_id
       ORDER BY a.data DESC, a.hora_inicio DESC
     `;
     const result = await pool.query(query);
