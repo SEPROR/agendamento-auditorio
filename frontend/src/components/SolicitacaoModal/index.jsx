@@ -1,6 +1,11 @@
+import { useState } from 'react';
 import styles from './index.module.css';
 
-export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF }) {
+export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF, onDesmarcar }) {
+  const [confirmando, setConfirmando] = useState(false);
+  const [desmarcando, setDesmarcando] = useState(false);
+  const [erro, setErro] = useState(null);
+
   if (!solicitacao) return null;
 
   const campos = [
@@ -14,6 +19,20 @@ export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF }) {
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) onFechar();
   };
+
+    async function handleDesmarcar() {
+    setDesmarcando(true);
+    setErro(null);
+    try {
+      await onDesmarcar(solicitacao); // o pai faz o PATCH e atualiza a lista
+      setConfirmando(false);
+      onFechar();
+    } catch (err) {
+      setErro(err.message || 'Não foi possível desmarcar.');
+    } finally {
+      setDesmarcando(false);
+    }
+  }
 
   return (
     <div className={`${styles.modalOverlay} ${styles.open}`} onClick={handleOverlayClick}>
@@ -77,6 +96,13 @@ export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF }) {
         </div>
 
         <div className={styles.modalFooter}>
+
+         {solicitacao.status !== 'desmarcado' && (
+            <button className={styles.btnDanger} onClick={() => { setErro(null); setConfirmando(true); }}>
+              Desmarcar
+            </button>
+          )}
+
           <button className={styles.btnOutline} onClick={() => onExportarPDF(solicitacao)}>
             <svg
               width="15"
@@ -97,6 +123,33 @@ export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF }) {
           <button className={styles.btnPrimary} onClick={onFechar}>Fechar</button>
         </div>
       </div>
+
+     {confirmando && (
+        <div
+          className={styles.confirmOverlay}
+          onClick={(e) => { e.stopPropagation(); if (!desmarcando && e.target === e.currentTarget) setConfirmando(false); }}
+        >
+          <div className={styles.confirmBox} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.confirmTitle}>Você tem certeza?</h3>
+            <p className={styles.confirmText}>
+              Ao desmarcar, o horário de <strong>{solicitacao.data}</strong>, das{' '}
+              <strong>{solicitacao.horaInicio} às {solicitacao.horaFim}</strong> ({solicitacao.sala}),
+              ficará disponível para agendamento por outros setores. A reserva de{' '}
+              <strong>{solicitacao.solicitante}</strong> aparecerá como desmarcada para ele(a).
+              Esta ação não pode ser desfeita.
+            </p>
+            {erro && <p className={styles.confirmErro}>{erro}</p>}
+            <div className={styles.confirmActions}>
+              <button className={styles.btnOutline} disabled={desmarcando} onClick={() => setConfirmando(false)}>
+                Voltar
+              </button>
+              <button className={styles.btnDanger} disabled={desmarcando} onClick={handleDesmarcar}>
+                {desmarcando ? 'Desmarcando...' : 'Sim, desmarcar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

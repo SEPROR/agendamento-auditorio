@@ -9,6 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const STATUS_CONFIG = {
   confirmado: { label: "Confirmado", className: styles.statusConfirmado, dot: styles.dotConfirmado },
   cancelado: { label: "Cancelado", className: styles.statusCancelado, dot: styles.dotCancelado },
+  desmarcado: { label: "Desmarcado", className: styles.statusDesmarcado, dot: styles.dotDesmarcado },
 };
 
 function CalendarIcon() {
@@ -234,6 +235,11 @@ export default function MeusAgendamentos() {
 
                 {isOpen && (
                   <div className={styles.expandedBody}>
+                    {ag.status === "desmarcado" && (
+                      <p className={`${styles.obsText} ${styles.colSpan2}`} style={{ marginBottom: 0 }}>
+                        Esta reserva foi desmarcada pela administração e o horário foi liberado.
+                      </p>
+                    )}
                     <div className={styles.expandedGrid}>
 
                       {podeCancelar && (

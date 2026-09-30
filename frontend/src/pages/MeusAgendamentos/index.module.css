@@ -318,3 +318,6 @@
 
 .btnDanger:disabled,
 .btnGhost:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.statusDesmarcado { color: #b45309; background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.25); }
+.dotDesmarcado    { background-color: #b45309; }
