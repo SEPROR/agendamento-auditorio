@@ -1,10 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './index.module.css';
 
-export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF, onDesmarcar }) {
+export function SolicitacaoModal({
+  solicitacao,
+  onFechar,
+  onExportarPDF,
+  onDesmarcar,
+  podeDesmarcar = false,
+}) {
   const [confirmando, setConfirmando] = useState(false);
   const [desmarcando, setDesmarcando] = useState(false);
   const [erro, setErro] = useState(null);
+  const [sucesso, setSucesso] = useState(null); // { emailEnviado }
+
+  // Reseta a caixa ao abrir/trocar de reserva
+  useEffect(() => {
+    setConfirmando(false);
+    setErro(null);
+    setSucesso(null);
+  }, [solicitacao?.id]);
 
   if (!solicitacao) return null;
 
@@ -16,22 +30,30 @@ export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF, onDesma
     ['Horário', `${solicitacao.horaInicio} – ${solicitacao.horaFim}`],
   ];
 
+  // Botão só para quem tem permissão e para reservas confirmadas
+  const mostrarDesmarcar = podeDesmarcar && solicitacao.status === 'confirmado';
+
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) onFechar();
   };
 
-    async function handleDesmarcar() {
+  async function handleDesmarcar() {
     setDesmarcando(true);
     setErro(null);
     try {
-      await onDesmarcar(solicitacao); // o pai faz o PATCH e atualiza a lista
-      setConfirmando(false);
-      onFechar();
+      const resp = await onDesmarcar(solicitacao); // o pai faz o PATCH e atualiza a lista
+      setSucesso({ emailEnviado: !!resp?.emailEnviado });
     } catch (err) {
       setErro(err.message || 'Não foi possível desmarcar.');
     } finally {
       setDesmarcando(false);
     }
+  }
+
+  function handleOkSucesso() {
+    setSucesso(null);
+    setConfirmando(false);
+    onFechar();
   }
 
   return (
@@ -68,6 +90,14 @@ export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF, onDesma
                 <div className={styles.modalFieldValue}>{valor}</div>
               </div>
             ))}
+            {solicitacao.status && solicitacao.status !== 'confirmado' && (
+              <div className={styles.modalField}>
+                <div className={styles.modalFieldLabel}>Status</div>
+                <div className={styles.modalFieldValue} style={{ textTransform: 'capitalize' }}>
+                  {solicitacao.status}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className={styles.kmBox}>
@@ -88,7 +118,7 @@ export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF, onDesma
               <line x1="16" y1="17" x2="8" y2="17" />
             </svg>
 
-            <div >
+            <div>
               <div className={styles.kmLabel}>Observações</div>
               <div className={styles.kmValue}>{solicitacao.observacoes}</div>
             </div>
@@ -96,9 +126,14 @@ export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF, onDesma
         </div>
 
         <div className={styles.modalFooter}>
-
-         {solicitacao.status !== 'desmarcado' && (
-            <button className={styles.btnDanger} onClick={() => { setErro(null); setConfirmando(true); }}>
+          {mostrarDesmarcar && (
+            <button
+              className={styles.btnDanger}
+              onClick={() => {
+                setErro(null);
+                setConfirmando(true);
+              }}
+            >
               Desmarcar
             </button>
           )}
@@ -124,29 +159,54 @@ export function SolicitacaoModal({ solicitacao, onFechar, onExportarPDF, onDesma
         </div>
       </div>
 
-     {confirmando && (
+      {confirmando && (
         <div
           className={styles.confirmOverlay}
-          onClick={(e) => { e.stopPropagation(); if (!desmarcando && e.target === e.currentTarget) setConfirmando(false); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!desmarcando && !sucesso && e.target === e.currentTarget) setConfirmando(false);
+          }}
         >
           <div className={styles.confirmBox} onClick={(e) => e.stopPropagation()}>
-            <h3 className={styles.confirmTitle}>Você tem certeza?</h3>
-            <p className={styles.confirmText}>
-              Ao desmarcar, o horário de <strong>{solicitacao.data}</strong>, das{' '}
-              <strong>{solicitacao.horaInicio} às {solicitacao.horaFim}</strong> ({solicitacao.sala}),
-              ficará disponível para agendamento por outros setores. A reserva de{' '}
-              <strong>{solicitacao.solicitante}</strong> aparecerá como desmarcada para ele(a).
-              Esta ação não pode ser desfeita.
-            </p>
-            {erro && <p className={styles.confirmErro}>{erro}</p>}
-            <div className={styles.confirmActions}>
-              <button className={styles.btnOutline} disabled={desmarcando} onClick={() => setConfirmando(false)}>
-                Voltar
-              </button>
-              <button className={styles.btnDanger} disabled={desmarcando} onClick={handleDesmarcar}>
-                {desmarcando ? 'Desmarcando...' : 'Sim, desmarcar'}
-              </button>
-            </div>
+            {!sucesso ? (
+              <>
+                <h3 className={styles.confirmTitle}>Você tem certeza?</h3>
+                <p className={styles.confirmText}>
+                  Ao desmarcar, o horário de <strong>{solicitacao.data}</strong>, das{' '}
+                  <strong>{solicitacao.horaInicio} às {solicitacao.horaFim}</strong> ({solicitacao.sala}),
+                  ficará disponível para agendamento por outros setores. A reserva de{' '}
+                  <strong>{solicitacao.solicitante}</strong> aparecerá como desmarcada para ele(a).
+                  Esta ação não pode ser desfeita.
+                </p>
+                {erro && <p className={styles.confirmErro}>{erro}</p>}
+                <div className={styles.confirmActions}>
+                  <button
+                    className={styles.btnOutline}
+                    disabled={desmarcando}
+                    onClick={() => setConfirmando(false)}
+                  >
+                    Voltar
+                  </button>
+                  <button className={styles.btnDanger} disabled={desmarcando} onClick={handleDesmarcar}>
+                    {desmarcando ? 'Desmarcando...' : 'Sim, desmarcar'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className={styles.confirmTitle}>Reserva desmarcada</h3>
+                <p className={styles.confirmText}>
+                  {sucesso.emailEnviado
+                    ? 'O usuário foi avisado por e-mail e o horário foi liberado.'
+                    : 'O horário foi liberado, mas o usuário não tem e-mail cadastrado ou o envio falhou.'}
+                </p>
+                <div className={styles.confirmActions}>
+                  <button className={styles.btnPrimary} onClick={handleOkSucesso}>
+                    OK
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
