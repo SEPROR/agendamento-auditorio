@@ -35,6 +35,7 @@ function mapearAgendamento(a) {
     horaFim: a.hora_fim || "—",
     dataRaw: a.data,
     observacoes: a.observacoes || "Nenhuma observação",
+    status: a.status || "confirmado",
   };
 }
 
@@ -84,10 +85,23 @@ export default function Relatorio() {
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [detalheAtual, setDetalheAtual] = useState(null);
 
+  // Permissão para desmarcar (vem do backend, a partir do login no AD)
+  const [podeDesmarcar, setPodeDesmarcar] = useState(false);
+  const [desmarcando, setDesmarcando] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/auth/status`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setPodeDesmarcar(!!d?.podeDesmarcar))
+      .catch(() => {});
+  }, []);
+
   const carregarDados = useCallback(async () => {
     setEstado("loading");
     try {
-      const response = await fetch(`${API_BASE_URL}/api/agendamentos/relatorio`);
+      const response = await fetch(`${API_BASE_URL}/api/agendamentos/relatorio`, {
+        credentials: "include",
+      });
       if (!response.ok) throw new Error("Falha ao buscar agendamentos");
       const todos = await response.json();
 
@@ -180,6 +194,33 @@ export default function Relatorio() {
 
   const fecharModal = useCallback(() => setDetalheAtual(null), []);
 
+  // Sem window.confirm/alert: devolve o resultado para o modal exibir na caixa branca
+  const desmarcar = useCallback(async (agendamento) => {
+    if (!agendamento || agendamento.status !== "confirmado") {
+      return { ok: false, erro: "Esta reserva não pode ser desmarcada." };
+    }
+
+    setDesmarcando(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/agendamentos/${agendamento.id}/desmarcar`, {
+        method: "PATCH",
+        credentials: "include",
+      });
+      const resp = await res.json().catch(() => ({}));
+      if (!res.ok) return { ok: false, erro: resp.erro || `Erro ${res.status}` };
+
+      setDados((prev) =>
+        prev.map((a) => (a.id === agendamento.id ? { ...a, status: "desmarcado" } : a))
+      );
+
+      return { ok: true, emailEnviado: !!resp.emailEnviado };
+    } catch (err) {
+      return { ok: false, erro: err.message || "Erro ao desmarcar a reserva." };
+    } finally {
+      setDesmarcando(false);
+    }
+  }, []);
+
   const filtrosAtuaisLabel = { sala, tipo, periodo };
 
   const handleGerarPdf = useCallback(() => {
@@ -266,6 +307,9 @@ export default function Relatorio() {
         solicitacao={detalheAtual}
         onFechar={fecharModal}
         onExportarPDF={handleExportarPdfModal}
+        podeDesmarcar={podeDesmarcar}
+        desmarcando={desmarcando}
+        onDesmarcar={desmarcar}
       />
     </main>
     <Footer/>

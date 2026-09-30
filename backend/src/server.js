@@ -88,12 +88,12 @@ async function getADClient() {
     referrals: { enabled: false }
   });
 
-  // evita que erros de conexão derrubem o servidor inteiro
+  
   adInstance.on('error', (err) => {
     console.error('Erro de conexão com o AD:', err.message);
   });
 
-  // 2. Inicializa o cliente AD de forma assíncrona
+  
   await adInstance.initialise();
 
   return adInstance;
@@ -101,8 +101,8 @@ async function getADClient() {
 
 const AD_ADMIN_GROUP_DN = process.env.AD_ADMIN_GROUP_DN;
 
-// permite o usuário digitar só o username, sem prefixo de organização
-const AD_ORG_PREFIX = process.env.AD_ORG_PREFIX; // ex: "empresa.com"
+
+const AD_ORG_PREFIX = process.env.AD_ORG_PREFIX; 
 
 function normalizeUsername(input) {
   if (!input) return input;
@@ -125,9 +125,7 @@ function normalizeUsername(input) {
 // ==============================================
 // SETOR AUTOMÁTICO A PARTIR DA OU DO AD
 // ==============================================
-// O DN do usuário no AD tem o formato:
-//   CN=Nome da Pessoa,OU=SETOR,OU=USUARIOS,OU=..., DC=...
-// A primeira OU logo após o CN é o setor da pessoa.
+
 
 // Extrai o nome do setor a partir do DN do usuário
 function extrairSetorDoDN(dn) {
@@ -141,9 +139,35 @@ function extrairSetorDoDN(dn) {
   return primeiraOU.substring(3).trim();
 }
 
-// Busca o setor no banco pelo nome (case-insensitive).
-// Se não existir ainda, cria automaticamente — assim novos setores
-// que apareçam no AD não exigem nenhum cadastro manual.
+// ==============================================
+// PERMISSÃO PARA DESMARCAR RESERVAS
+// ==============================================
+
+
+
+const DESMARCAR_USUARIOS = (process.env.AD_DESMARCAR_USUARIOS || 'jtavares')
+  .split(',')
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
+
+
+const DESMARCAR_GRUPOS = (process.env.AD_DESMARCAR_GRUPOS || 'gilog')
+  .split(',')
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
+
+
+function cnDoDN(dn) {
+  const m = /^CN=((?:\\.|[^,])+)/i.exec(dn || '');
+  return m ? m[1].replace(/\\(.)/g, '$1').toLowerCase() : null;
+}
+
+function requireDesmarcar(req, res, next) {
+  if (req.session?.podeDesmarcar) return next();
+  return res.status(403).json({ erro: 'Sem permissão para desmarcar reservas' });
+}
+
+
 async function buscarOuCriarSetor(nomeSetorAD) {
   if (!nomeSetorAD) return null;
 
@@ -203,7 +227,7 @@ app.get('/api/salas', async (req, res) => {
   }
 });
 
-// Horários ocupados (usado na tela de agendar). Ignora cancelados.
+// Horários ocupados (usado na tela de agendar). Ignora cancelados e desmarcados.
 app.get('/api/agendamentos', async (req, res) => {
   try {
     const { sala_id } = req.query;
@@ -216,7 +240,7 @@ app.get('/api/agendamentos', async (req, res) => {
         to_char(a.hora_fim, 'HH24:MI') AS fim
       FROM agendamentos a
       JOIN usuarios u ON u.id = a.usuario_id
-      WHERE a.status <> 'cancelado'
+      WHERE a.status NOT IN ('cancelado', 'desmarcado')
     `;
 
     const params = [];
@@ -251,6 +275,9 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
     const setor_id = req.session.setorId;
     const solicitanteAdLogin = req.session.adLogin || null;
 
+    // E-mail: o informado no formulário; se vazio, usa o e-mail do AD
+    const emailFinal = email || req.session.email || null;
+
     if (!nome) {
       return res.status(400).json({ erro: 'Não foi possível identificar seu nome de usuário no Active Directory.' });
     }
@@ -258,7 +285,6 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
       return res.status(400).json({ erro: 'Não foi possível identificar seu setor no Active Directory. Contate o administrador.' });
     }
 
-    // Validações (antes do BEGIN)
     if (!sala || !data || !hora_inicio || !hora_fim) {
       return res.status(400).json({ erro: 'Campos obrigatórios faltando' });
     }
@@ -273,15 +299,15 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
 
     await client.query('BEGIN');
 
-    // serializa reservas concorrentes da mesma sala/dia
+    
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`${sala}|${data}`]);
 
-    // Conflito: ignora agendamentos cancelados
+    
     const conflito = await client.query(
       `SELECT to_char(hora_inicio,'HH24:MI') AS inicio, to_char(hora_fim,'HH24:MI') AS fim
          FROM agendamentos
         WHERE sala_id = $1 AND data = $2
-          AND status <> 'cancelado'
+          AND status NOT IN ('cancelado', 'desmarcado')
           AND hora_inicio < $4 AND hora_fim > $3
         LIMIT 1`,
       [sala, data, hora_inicio, hora_fim]
@@ -302,15 +328,15 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
     let usuario_id;
     if (usuarioResult.rows.length > 0) {
       usuario_id = usuarioResult.rows[0].id;
-      // Atualiza o email e o setor (o setor pode ter mudado desde o último agendamento)
+      
       await client.query(
         'UPDATE usuarios SET email = COALESCE($1, email), setor_id = $2 WHERE id = $3',
-        [email || null, setor_id, usuario_id]
+        [emailFinal, setor_id, usuario_id]
       );
     } else {
       const novoUsuario = await client.query(
         'INSERT INTO usuarios (nome, setor_id, email) VALUES ($1, $2, $3) RETURNING id',
-        [nome, setor_id, email || null]
+        [nome, setor_id, emailFinal]
       );
       usuario_id = novoUsuario.rows[0].id;
     }
@@ -400,8 +426,8 @@ app.post('/api/usuarios', async (req, res) => {
   }
 });
 
-// Relatório (admin): mantém os cancelados e mostra o status
-app.get('/api/agendamentos/relatorio', async (req, res) => {
+// Relatório (admin): mantém os cancelados/desmarcados e mostra o status
+app.get('/api/agendamentos/relatorio', requireAuth, async (req, res) => {
   try {
     const query = `
       SELECT 
@@ -427,7 +453,6 @@ app.get('/api/agendamentos/relatorio', async (req, res) => {
     res.status(500).json({ erro: 'Erro ao buscar relatório de agendamentos' });
   }
 });
-
 
 
 app.get('/api/agendamentos/minhas', requireAuth, async (req, res) => {
@@ -486,6 +511,9 @@ app.patch('/api/agendamentos/:id/cancelar', requireAuth, async (req, res) => {
     if (ag.status === 'cancelado') {
       return res.status(409).json({ erro: 'Agendamento já cancelado' });
     }
+    if (ag.status === 'desmarcado') {
+      return res.status(409).json({ erro: 'Agendamento já foi desmarcado pela administração' });
+    }
 
     await pool.query(
       "UPDATE agendamentos SET status = 'cancelado' WHERE id = $1",
@@ -495,6 +523,80 @@ app.patch('/api/agendamentos/:id/cancelar', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Erro ao cancelar agendamento:', err);
     res.status(500).json({ erro: 'Erro ao cancelar agendamento' });
+  }
+});
+
+
+app.patch('/api/agendamentos/:id/desmarcar', requireAuth, requireDesmarcar, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ erro: 'ID inválido' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         a.id, a.status,
+         u.nome  AS nome,
+         u.email AS email,
+         sa.nome AS sala,
+         to_char(a.data, 'DD/MM/YYYY')      AS data,
+         to_char(a.hora_inicio, 'HH24:MI')  AS hora_inicio,
+         to_char(a.hora_fim, 'HH24:MI')     AS hora_fim
+       FROM agendamentos a
+       JOIN usuarios u ON u.id = a.usuario_id
+       JOIN salas sa   ON sa.id = a.sala_id
+       WHERE a.id = $1`,
+      [id]
+    );
+    const ag = rows[0];
+
+    if (!ag) return res.status(404).json({ erro: 'Agendamento não encontrado' });
+    if (ag.status !== 'confirmado') {
+      return res.status(409).json({ erro: `Agendamento já está ${ag.status}` });
+    }
+
+  
+    const upd = await pool.query(
+      "UPDATE agendamentos SET status = 'desmarcado' WHERE id = $1 AND status = 'confirmado'",
+      [id]
+    );
+    if (upd.rowCount === 0) {
+      return res.status(409).json({ erro: 'Agendamento já foi alterado por outra pessoa' });
+    }
+
+    console.log(`Reserva ${id} desmarcada por ${req.session.adLogin}`);
+
+    let emailEnviado = false;
+    if (ag.email) {
+      try {
+        await transporter.sendMail({
+          from: process.env.GMAIL_USER,
+          to: ag.email,
+          subject: `Agendamento desmarcado - ${ag.sala}`,
+          html: `
+            <h2>Olá, ${ag.nome}!</h2>
+            <p>Seu agendamento foi <strong>desmarcado pela administração</strong> e o horário foi liberado:</p>
+            <ul>
+              <li><strong>Sala:</strong> ${ag.sala}</li>
+              <li><strong>Data:</strong> ${ag.data}</li>
+              <li><strong>Horário:</strong> ${ag.hora_inicio} - ${ag.hora_fim}</li>
+            </ul>
+            <p>Em caso de dúvidas, entre em contato com a administração.</p>
+          `,
+        });
+        emailEnviado = true;
+      } catch (erroEmail) {
+        console.error('Reserva desmarcada, mas falhou ao enviar e-mail:', erroEmail.message);
+      }
+    } else {
+      console.warn(`Reserva ${id} desmarcada, mas o usuário "${ag.nome}" não tem e-mail cadastrado.`);
+    }
+
+    res.json({ id, status: 'desmarcado', emailEnviado });
+  } catch (err) {
+    console.error('Erro ao desmarcar agendamento:', err);
+    res.status(500).json({ erro: 'Erro ao desmarcar agendamento' });
   }
 });
 
@@ -525,7 +627,16 @@ app.post('/api/login-ad', async (req, res) => {
       ? groups.some((g) => typeof g === 'string' && g.toLowerCase() === targetAdminGroup)
       : false;
 
-    
+    // Permissão para desmarcar: usuário autorizado OU membro de grupo autorizado
+    const loginAD = (user.sAMAccountName || '').toLowerCase();
+    const usuarioAutorizado = DESMARCAR_USUARIOS.includes(loginAD);
+    const grupoAutorizado = groups.some(
+      (g) => typeof g === 'string' && DESMARCAR_GRUPOS.includes(cnDoDN(g))
+    );
+    const podeDesmarcar = usuarioAutorizado || grupoAutorizado;
+
+    console.log('Permissão de desmarcar:', loginAD, '->', podeDesmarcar);
+
     const dnUsuario = user.dn || user.distinguishedName;
     const nomeSetorAD = extrairSetorDoDN(dnUsuario);
     const setorInfo = await buscarOuCriarSetor(nomeSetorAD);
@@ -535,7 +646,9 @@ app.post('/api/login-ad', async (req, res) => {
     req.session.autenticado = true;
     req.session.usuario = user.displayName || user.sAMAccountName || user.cn; // Nome do usuário
     req.session.adLogin = (user.sAMAccountName || loginNormalizado || '').toLowerCase();
+    req.session.email = user.mail || null;
     req.session.isAdmin = isAdmin;
+    req.session.podeDesmarcar = podeDesmarcar;
     req.session.nivelAcesso = isAdmin ? 'ADMIN' : 'USER';
     req.session.setorId = setorInfo ? setorInfo.id : null;
     req.session.setorNome = setorInfo ? setorInfo.nome : null;
@@ -544,6 +657,7 @@ app.post('/api/login-ad', async (req, res) => {
       success: true,
       message: 'Login realizado com sucesso',
       isAdmin,
+      podeDesmarcar,
       usuario: user.displayName || user.sAMAccountName,
       setorId: req.session.setorId,
       setorNome: req.session.setorNome,
@@ -565,6 +679,7 @@ app.get('/api/auth/status', (req, res) => {
       autenticado: true,
       usuario: req.session.usuario,
       isAdmin: req.session.isAdmin,
+      podeDesmarcar: !!req.session.podeDesmarcar,
       setorId: req.session.setorId || null,
       setorNome: req.session.setorNome || null,
     });
