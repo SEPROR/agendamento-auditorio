@@ -1,0 +1,127 @@
+.root {
+  position: relative;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  border: 1px solid rgba(45, 106, 63, 0.3);
+  background: #ffffff;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.field:hover {
+  border-color: rgba(45, 106, 63, 0.6);
+}
+
+.field:focus-within,
+.fieldOpen {
+  border-color: #2d6a3f;
+  box-shadow: 0 0 0 3px rgba(45, 106, 63, 0.15);
+}
+
+.fieldError {
+  border-color: rgba(220, 38, 38, 0.6);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0 0.5rem 0.625rem;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: "Inter", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1f2d24;
+  font-variant-numeric: tabular-nums;
+}
+
+.input::placeholder {
+  color: #9aa39e;
+  font-weight: 400;
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.625rem;
+  border: none;
+  border-radius: 0 6px 6px 0;
+  background: transparent;
+  color: #2d6a3f;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.iconButton:hover {
+  background: rgba(45, 106, 63, 0.1);
+}
+
+.popover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: #ffffff;
+  border: 1px solid rgba(45, 106, 63, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px -8px rgba(31, 45, 36, 0.25);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 3.5rem;
+  max-height: 13rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(45, 106, 63, 0.35) transparent;
+}
+
+.column + .column {
+  border-left: 1px solid rgba(45, 106, 63, 0.12);
+  padding-left: 0.25rem;
+}
+
+.colTitle {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5f6b64;
+  padding: 0.125rem 0 0.25rem;
+}
+
+.option {
+  padding: 0.4rem 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  font-family: "Inter", sans-serif;
+  font-size: 0.8125rem;
+  color: #1f2d24;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.option:hover {
+  background: rgba(45, 106, 63, 0.12);
+}
+
+.optionActive,
+.optionActive:hover {
+  background: #2d6a3f;
+  color: #ffffff;
+  font-weight: 600;
+}

@@ -6,6 +6,7 @@ import {
   isDayFullyBooked, hasAnyBooking, pad,
   getDayBookings, findConflict, toMinutes,
 } from "../../helpers";
+import TimePicker from "../TimePicker";
 import styles from "./index.module.css";
 
 const LEGEND_ITEMS = [
@@ -36,7 +37,7 @@ export function CalendarPanel({
 
   const days = useMemo(() => {
     const first = new Date(year, month, 1);
-    const last  = new Date(year, month + 1, 0);
+    const last = new Date(year, month + 1, 0);
     const result = [];
     for (let i = 0; i < first.getDay(); i++) result.push(null);
     for (let d = 1; d <= last.getDate(); d++) result.push(new Date(year, month, d));
@@ -55,7 +56,7 @@ export function CalendarPanel({
     return { year: y, month: m };
   });
 
-  const canGoPrev  = new Date(year, month, 1) > today;
+  const canGoPrev = new Date(year, month, 1) > today;
   const selDayDate = selectedDate ? new Date(selectedDate + "T00:00:00") : null;
 
   // Agendamentos do dia selecionado, ordenados por horário de início
@@ -126,15 +127,15 @@ export function CalendarPanel({
         {days.map((date, i) => {
           if (!date) return <div key={`e-${i}`} />;
 
-          const dateStr     = fmt(date);
-          const isPast      = date < today;
-          const isWknd      = isWeekend(date);
+          const dateStr = fmt(date);
+          const isPast = date < today;
+          const isWknd = isWeekend(date);
           const hallBlocked = isHall && !isHallAllowed(date);
-          const disabled    = isPast || isWknd || hallBlocked;
-          const isFull      = isDayFullyBooked(bookings, dateStr);
-          const hasSome     = hasAnyBooking(bookings, dateStr);
-          const isSelected  = dateStr === selectedDate;
-          const isToday     = fmt(date) === fmt(today);
+          const disabled = isPast || isWknd || hallBlocked;
+          const isFull = isDayFullyBooked(bookings, dateStr);
+          const hasSome = hasAnyBooking(bookings, dateStr);
+          const isSelected = dateStr === selectedDate;
+          const isToday = fmt(date) === fmt(today);
 
           let cellClass = styles.dayCell + " ";
           if (disabled) {
@@ -210,30 +211,28 @@ export function CalendarPanel({
 
           {/* Campos de início e término */}
           <div className={styles.timeRow}>
-            <label className={styles.timeField}>
+            <div className={styles.timeField}>
               Início
-              <input
-                type="time"
-                step="900"
+              <TimePicker
                 value={horaInicio}
-                min={`${pad(HOUR_START)}:00`}
-                max={`${pad(HOUR_END)}:00`}
-                onChange={(e) => onChangeHora("hora_inicio", e.target.value)}
-                className={`${styles.timeInput} ${timeError ? styles.timeInputError : ""}`}
+                onChange={(v) => onChangeHora("hora_inicio", v)}
+                hourStart={HOUR_START}
+                hourEnd={HOUR_END}
+                hasError={!!timeError}
+                ariaLabel="Horário de início"
               />
-            </label>
-            <label className={styles.timeField}>
+            </div>
+            <div className={styles.timeField}>
               Término
-              <input
-                type="time"
-                step="900"
+              <TimePicker
                 value={horaFim}
-                min={`${pad(HOUR_START)}:00`}
-                max={`${pad(HOUR_END)}:00`}
-                onChange={(e) => onChangeHora("hora_fim", e.target.value)}
-                className={`${styles.timeInput} ${timeError ? styles.timeInputError : ""}`}
+                onChange={(v) => onChangeHora("hora_fim", v)}
+                hourStart={HOUR_START}
+                hourEnd={HOUR_END}
+                hasError={!!timeError}
+                ariaLabel="Horário de término"
               />
-            </label>
+            </div>
           </div>
 
           {timeError && (

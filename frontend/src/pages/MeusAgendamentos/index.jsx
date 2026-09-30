@@ -236,7 +236,7 @@ export default function MeusAgendamentos() {
                 {isOpen && (
                   <div className={styles.expandedBody}>
                     {ag.status === "desmarcado" && (
-                      <p className={`${styles.obsText} ${styles.colSpan2}`} style={{ marginBottom: 0 }}>
+                      <p className={`${styles.DesText} ${styles.colSpan2}`} style={{ marginBottom: 0 }}>
                         Esta reserva foi desmarcada pela administração e o horário foi liberado.
                       </p>
                     )}
