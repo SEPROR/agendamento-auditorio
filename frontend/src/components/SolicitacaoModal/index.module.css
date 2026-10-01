@@ -125,27 +125,12 @@ line-height: 1;
 text-transform: capitalize;
 }
 
-/* .badgeGreen {
-color: #166534;
-background: #dcfce7;
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
 }
-
-.badgeYellow {
-color: #854d0e;
-background: #fef9c3;
-}
-
-.badgeRed {
-color: #991b1b;
-background: #fee2e2;
-}
-
-.badgeAmber {
-color: #92400e;
-background: #fef3c7;
-} */
-
-/* Grid de informações */
 
 .modalGrid {
 display: grid;

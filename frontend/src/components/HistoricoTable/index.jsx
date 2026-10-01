@@ -1,4 +1,5 @@
 import styles from './index.module.css';
+import StatusBadge from '../StatusBadge';
 
 function initials(nome) {
   if (!nome) return '';
@@ -34,18 +35,15 @@ export function HistoricoTable({ estado, itens, tableCountLabel, onAbrirModal, o
               <th>Solicitante</th>
               <th>Setor</th>
               <th>Sala</th>
-              <th>Assunto</th>
               <th>Data</th>
               <th>Horário</th>
               <th>Observações</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {itens.map((a, i) => (
-              <tr
-                key={a.id}
-                onClick={() => onAbrirModal(a.id)}
-                >
+            {itens.map((a) => (
+              <tr key={a.id} onClick={() => onAbrirModal(a.id)}>
                 <td className={styles.tdId}>#{a.id}</td>
                 <td style={{ fontWeight: 500 }}>{a.solicitante}</td>
                 <td className={styles.tdMuted}>{a.setor}</td>
@@ -55,12 +53,12 @@ export function HistoricoTable({ estado, itens, tableCountLabel, onAbrirModal, o
                     {a.sala}
                   </div>
                 </td>
-                <td className={`${styles.tdMuted} ${styles.tdTrunc}`} title={a.assunto}>{a.assunto}</td>
                 <td className={styles.tdMuted} style={{ whiteSpace: 'nowrap' }}>{a.data}</td>
                 <td className={styles.tdMuted} style={{ whiteSpace: 'nowrap' }}>
                   {a.horaInicio} – {a.horaFim}
                 </td>
                 <td className={`${styles.tdMuted} ${styles.tdTrunc}`} title={a.observacoes}>{a.observacoes}</td>
+                <td><StatusBadge status={a.status} /></td>
               </tr>
             ))}
           </tbody>
@@ -78,9 +76,9 @@ export function HistoricoTable({ estado, itens, tableCountLabel, onAbrirModal, o
             </div>
             <div className={styles.mobileCardMeta}>
               <strong>Sala:</strong> {a.sala}<br />
-              <strong>Assunto:</strong> {a.assunto}<br />
               <strong>Data:</strong> {a.data} das {a.horaInicio} às {a.horaFim}<br />
-              <strong>Observações:</strong> {a.observacoes}
+              <strong>Observações:</strong> {a.observacoes}<br />
+              <strong>Status:</strong> <StatusBadge status={a.status} />
             </div>
           </div>
         ))}

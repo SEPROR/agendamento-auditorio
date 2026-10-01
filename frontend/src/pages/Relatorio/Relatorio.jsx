@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
-import StatsGrid from "../../components/StatsGrid";
+// import StatsGrid from "../../components/StatsGrid";
 import HistoricoFilters from "../../components/HistoricoFilters";
 import HistoricoTable from "../../components/HistoricoTable";
 import Pagination from "../../components/Pagination";
@@ -18,8 +18,9 @@ const MESES = [
 ];
 
 const TODAS_SALAS = "Todas as Salas";
-const TODOS_TIPOS = "Todos os Tipos";
+const TODOS_STATUS = "Todos os Status";
 const TODOS_PERIODOS = "Todos os Períodos";
+const STATUS_OPTIONS = ["Confirmado", "Cancelado", "Desmarcado"];
 
 function mapearAgendamento(a) {
   return {
@@ -39,21 +40,25 @@ function mapearAgendamento(a) {
   };
 }
 
+const STATUS_LABEL = { confirmado: "Confirmado", cancelado: "Cancelado", desmarcado: "Desmarcado" };
+
 function gerarHtmlPdf(lista, filtrosAtuais) {
   const linhas = lista
     .map((a) => {
+      const st = STATUS_LABEL[a.status] ? a.status : "confirmado";
       return `<tr>
-<td>#${a.id}</td><td>${a.solicitante}</td><td>${a.setor}</td><td>${a.sala}</td><td>${a.assunto}</td>
+<td>#${a.id}</td><td>${a.solicitante}</td><td>${a.setor}</td><td>${a.sala}</td>
 <td style="white-space:nowrap">${a.data}</td>
-<td style="white-space:nowrap">${a.horaInicio} – ${a.horaFim}</td></tr>`;
+<td style="white-space:nowrap">${a.horaInicio} – ${a.horaFim}</td>
+<td><span class="st st-${st}">${STATUS_LABEL[st]}</span></td></tr>`;
     })
     .join("");
 
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório</title>
-<style>body{font-family:Arial,sans-serif;font-size:12px;color:#1a2332;margin:0;padding:24px}.hdr{display:flex;justify-content:space-between;border-bottom:2px solid #2196a6;padding-bottom:12px;margin-bottom:18px}.hdr h1{font-size:17px;margin:4px 0 0;color:#2196a6}.hdr .org{font-size:10px;color:#6b7a8d;text-align:right}.fbox{background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:9px 13px;margin-bottom:16px;font-size:11px;color:#0c4a6e}.fbox span{margin-right:16px}table{width:100%;border-collapse:collapse}th{background:#2196a6;color:#fff;text-align:left;padding:6px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.05em}td{padding:5px 8px;border-bottom:1px solid #e2e8f0;font-size:11px}tr:nth-child(even) td{background:#f8fafc}.foot{margin-top:20px;font-size:10px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:9px}@media print{body{padding:0}}</style></head><body>
+<style>body{font-family:Arial,sans-serif;font-size:12px;color:#1a2332;margin:0;padding:24px}.hdr{display:flex;justify-content:space-between;border-bottom:2px solid #2196a6;padding-bottom:12px;margin-bottom:18px}.hdr h1{font-size:17px;margin:4px 0 0;color:#2196a6}.hdr .org{font-size:10px;color:#6b7a8d;text-align:right}.fbox{background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:9px 13px;margin-bottom:16px;font-size:11px;color:#0c4a6e}.fbox span{margin-right:16px}table{width:100%;border-collapse:collapse}th{background:#2196a6;color:#fff;text-align:left;padding:6px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.05em}td{padding:5px 8px;border-bottom:1px solid #e2e8f0;font-size:11px}tr:nth-child(even) td{background:#f8fafc}.foot{margin-top:20px;font-size:10px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:9px}.st{font-weight:700}.st-confirmado{color:#1f7e5b}.st-cancelado{color:#bb3232}.st-desmarcado{color:#b45309}@media print{body{padding:0}}</style></head><body>
 <div class="hdr"><div><div style="font-size:10px;color:#6b7a8d">GOVERNO DO ESTADO DO AMAZONAS</div><h1>Relatório de Agendamentos de Sala</h1></div><div class="org">Secretaria de Produção Rural<br/>Gerado em: ${new Date().toLocaleString("pt-BR")}</div></div>
-<div class="fbox"><strong>Filtros aplicados: </strong><span>Sala: ${filtrosAtuais.sala}</span><span>Tipo: ${filtrosAtuais.tipo}</span><span>Período: ${filtrosAtuais.periodo}</span><span>Total: ${lista.length} registro(s)</span></div>
-<table><thead><tr><th>#</th><th>Solicitante</th><th>Setor</th><th>Sala</th><th>Assunto</th><th>Data</th><th>Horário</th></tr></thead><tbody>${linhas}</tbody></table>
+<div class="fbox"><strong>Filtros aplicados: </strong><span>Sala: ${filtrosAtuais.sala}</span><span>Status: ${filtrosAtuais.status}</span><span>Período: ${filtrosAtuais.periodo}</span><span>Total: ${lista.length} registro(s)</span></div>
+<table><thead><tr><th>#</th><th>Solicitante</th><th>Setor</th><th>Sala</th><th>Data</th><th>Horário</th><th>Status</th></tr></thead><tbody>${linhas}</tbody></table>
 <div class="foot">Secretaria de Produção Rural — Sistema de Agendamento de Auditórios</div>
 </body></html>`;
 }
@@ -74,12 +79,11 @@ function abrirJanelaPdf(lista, filtrosAtuais) {
 export default function Relatorio() {
   const [dados, setDados] = useState([]);
   const [salasOptions, setSalasOptions] = useState([]);
-  const [tiposOptions, setTiposOptions] = useState([]);
   const [estado, setEstado] = useState("loading"); // loading | ok | error
 
   const [busca, setBusca] = useState("");
   const [sala, setSala] = useState(TODAS_SALAS);
-  const [tipo, setTipo] = useState(TODOS_TIPOS);
+  const [statusSel, setStatusSel] = useState(TODOS_STATUS);
   const [periodo, setPeriodo] = useState(TODOS_PERIODOS);
 
   const [paginaAtual, setPaginaAtual] = useState(1);
@@ -93,7 +97,7 @@ export default function Relatorio() {
     fetch(`${API_BASE_URL}/api/auth/status`, { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setPodeDesmarcar(!!d?.podeDesmarcar))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const carregarDados = useCallback(async () => {
@@ -114,7 +118,6 @@ export default function Relatorio() {
       setEstado("ok");
 
       setSalasOptions([...new Set(mapeados.map((d) => d.sala).filter((s) => s && s !== "—"))]);
-      setTiposOptions([...new Set(mapeados.map((d) => d.assunto).filter((t) => t && t !== "—"))]);
     } catch (error) {
       console.error("Erro ao carregar relatório:", error);
       setEstado("error");
@@ -146,7 +149,7 @@ export default function Relatorio() {
     const buscaLower = busca.toLowerCase();
     return dados.filter((a) => {
       if (sala !== TODAS_SALAS && a.sala !== sala) return false;
-      if (tipo !== TODOS_TIPOS && a.assunto !== tipo) return false;
+      if (statusSel !== TODOS_STATUS && (STATUS_LABEL[a.status] ?? "Confirmado") !== statusSel) return false;
       if (periodo !== TODOS_PERIODOS) {
         const chave = a.dataRaw
           ? a.dataRaw.substring(0, 7).split("-").reverse().join("/")
@@ -160,11 +163,11 @@ export default function Relatorio() {
         return false;
       return true;
     });
-  }, [dados, busca, sala, tipo, periodo]);
+  }, [dados, busca, sala, statusSel, periodo]);
 
   useEffect(() => {
     setPaginaAtual(1);
-  }, [busca, sala, tipo, periodo]);
+  }, [busca, sala, statusSel, periodo]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const paginaSegura = Math.min(paginaAtual, totalPaginas);
@@ -221,98 +224,98 @@ export default function Relatorio() {
     }
   }, []);
 
-  const filtrosAtuaisLabel = { sala, tipo, periodo };
+  const filtrosAtuaisLabel = { sala, statusSel, periodo };
 
   const handleGerarPdf = useCallback(() => {
     abrirJanelaPdf(filtrados, filtrosAtuaisLabel);
-  }, [filtrados, sala, tipo, periodo]);
+  }, [filtrados, sala, statusSel, periodo]);
 
   const handleExportarPdfModal = useCallback(
     (agendamento) => {
       if (agendamento) abrirJanelaPdf([agendamento], filtrosAtuaisLabel);
     },
-    [sala, tipo, periodo]
+    [sala, statusSel, periodo]
   );
 
   return (
     <div>
-      <Header/>
-    <main id="principal" className={styles.container}>
-      <div className={styles.pageTitleRow}>
-        <div>
-          <h1>Histórico de Agendamentos</h1>
-          <p>Registros de reservas de salas e auditórios</p>
-        </div>
-      </div>
-
-      <StatsGrid filtrados={filtrados} totalGeral={dados.length} />
-
-      <HistoricoFilters
-        busca={busca}
-        onBuscaChange={setBusca}
-        sala={sala}
-        onSalaChange={setSala}
-        tipo={tipo}
-        onTipoChange={setTipo}
-        periodo={periodo}
-        onPeriodoChange={setPeriodo}
-        salasOptions={salasOptions}
-        tiposOptions={tiposOptions}
-        periodosOptions={periodosOptions}
-        onLimpar={limparFiltros}
-      />
-
-     <div className={styles.actionsRow}>
-      <button className={styles.btnPrimary} onClick={handleGerarPdf}>
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-          </svg>
-          Gerar Relatório PDF
-        </button>
+      <Header />
+      <main id="principal" className={styles.container}>
+        <div className={styles.pageTitleRow}>
+          <div>
+            <h1>Histórico de Agendamentos</h1>
+            <p>Registros de reservas de salas e auditórios</p>
+          </div>
         </div>
 
-      <div className={styles.card}>
-        <HistoricoTable
-          estado={estado}
-          itens={paginaDados}
-          tableCountLabel={tableCountLabel}
-          onAbrirModal={abrirModal}
-          onTentarNovamente={carregarDados}
+        {/* <StatsGrid filtrados={filtrados} totalGeral={dados.length} /> */}
+
+        <HistoricoFilters
+          busca={busca}
+          onBuscaChange={setBusca}
+          sala={sala}
+          onSalaChange={setSala}
+          status={statusSel}
+          onStatusChange={setStatusSel}
+          periodo={periodo}
+          onPeriodoChange={setPeriodo}
+          salasOptions={salasOptions}
+          statusOptions={STATUS_OPTIONS}
+          periodosOptions={periodosOptions}
+          onLimpar={limparFiltros}
         />
 
-        {estado === "ok" && (
-          <Pagination
-            paginaAtual={paginaSegura}
-            totalPaginas={totalPaginas}
-            total={filtrados.length}
-            pageSize={PAGE_SIZE}
-            onIrPagina={setPaginaAtual}
-          />
-        )}
-      </div>
+        <div className={styles.actionsRow}>
+          <button className={styles.btnPrimary} onClick={handleGerarPdf}>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+            Gerar Relatório PDF
+          </button>
+        </div>
 
-      <SolicitacaoModal
-        solicitacao={detalheAtual}
-        onFechar={fecharModal}
-        onExportarPDF={handleExportarPdfModal}
-        podeDesmarcar={podeDesmarcar}
-        desmarcando={desmarcando}
-        onDesmarcar={desmarcar}
-      />
-    </main>
-    <Footer/>
+        <div className={styles.card}>
+          <HistoricoTable
+            estado={estado}
+            itens={paginaDados}
+            tableCountLabel={tableCountLabel}
+            onAbrirModal={abrirModal}
+            onTentarNovamente={carregarDados}
+          />
+
+          {estado === "ok" && (
+            <Pagination
+              paginaAtual={paginaSegura}
+              totalPaginas={totalPaginas}
+              total={filtrados.length}
+              pageSize={PAGE_SIZE}
+              onIrPagina={setPaginaAtual}
+            />
+          )}
+        </div>
+
+        <SolicitacaoModal
+          solicitacao={detalheAtual}
+          onFechar={fecharModal}
+          onExportarPDF={handleExportarPdfModal}
+          podeDesmarcar={podeDesmarcar}
+          desmarcando={desmarcando}
+          onDesmarcar={desmarcar}
+        />
+      </main>
+      <Footer />
     </div>
   );
 }

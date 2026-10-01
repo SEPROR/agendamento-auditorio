@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import styles from "./index.module.css";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
+import StatusBadge from "../../components/StatusBadge";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -205,11 +206,8 @@ export default function MeusAgendamentos() {
                         {ag.diaSemana}, {ag.dia}
                       </span>
                       <span className={styles.metaDot}>·</span>
-                      <span className={`${styles.statusBadge} ${status.className}`}>
-                        <span className={`${styles.statusDot} ${status.dot}`} />
-                        {status.label}
-                      </span>
-                    </div>
+                      <StatusBadge status={ag.status} />
+                      </div>
 
                     <p className={styles.cardTitle}>{ag.sala}</p>
                     <div className={styles.cardDetails}>

@@ -1,0 +1,20 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid;
+  white-space: nowrap; /* evita quebrar linha dentro da tabela */
+}
+
+.confirmado { color: #1f7e5b; background: rgba(52,211,153,.1);  border-color: rgba(52,211,153,.2); }
+.cancelado  { color: #bb3232; background: rgba(248,113,113,.1); border-color: rgba(248,113,113,.2); }
+.desmarcado { color: #b45309; background: rgba(245,158,11,.1);  border-color: rgba(245,158,11,.25); }
+
+.dot { width: 6px; height: 6px; border-radius: 50%; }
+.dotConfirmado { background-color: #1f7e5b; }
+.dotCancelado  { background-color: #bb3232; }
+.dotDesmarcado { background-color: #b45309; }

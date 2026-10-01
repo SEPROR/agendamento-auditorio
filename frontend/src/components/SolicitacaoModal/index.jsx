@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import styles from './index.module.css';
+import StatusBadge from '../StatusBadge';
 
 export function SolicitacaoModal({
   solicitacao,
@@ -41,8 +42,9 @@ export function SolicitacaoModal({
     setDesmarcando(true);
     setErro(null);
     try {
-      const resp = await onDesmarcar(solicitacao); // o pai faz o PATCH e atualiza a lista
-      setSucesso({ emailEnviado: !!resp?.emailEnviado });
+      const resp = await onDesmarcar(solicitacao);
+      if (!resp?.ok) throw new Error(resp?.erro || 'Não foi possível desmarcar.');
+      setSucesso({ emailEnviado: !!resp.emailEnviado });
     } catch (err) {
       setErro(err.message || 'Não foi possível desmarcar.');
     } finally {
@@ -90,14 +92,13 @@ export function SolicitacaoModal({
                 <div className={styles.modalFieldValue}>{valor}</div>
               </div>
             ))}
-            {solicitacao.status && solicitacao.status !== 'confirmado' && (
-              <div className={styles.modalField}>
-                <div className={styles.modalFieldLabel}>Status</div>
-                <div className={styles.modalFieldValue} style={{ textTransform: 'capitalize' }}>
-                  {solicitacao.status}
-                </div>
+
+            <div className={styles.modalField}>
+              <div className={styles.modalFieldLabel}>Status</div>
+              <div className={styles.modalFieldValue}>
+                <StatusBadge status={solicitacao.status} />
               </div>
-            )}
+            </div>
           </div>
 
           <div className={styles.kmBox}>
@@ -124,6 +125,7 @@ export function SolicitacaoModal({
             </div>
           </div>
         </div>
+
 
         <div className={styles.modalFooter}>
           {mostrarDesmarcar && (

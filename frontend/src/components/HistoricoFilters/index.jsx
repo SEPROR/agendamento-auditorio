@@ -1,7 +1,7 @@
 import styles from './index.module.css';
 
 const TODAS_SALAS = 'Todas as Salas';
-const TODOS_TIPOS = 'Todos os Tipos';
+const TODOS_STATUS = 'Todos os Status';
 const TODOS_PERIODOS = 'Todos os Períodos';
 
 export function HistoricoFilters({
@@ -9,22 +9,25 @@ export function HistoricoFilters({
   onBuscaChange,
   sala,
   onSalaChange,
-  tipo,
-  onTipoChange,
+  status,
+  onStatusChange,
   periodo,
   onPeriodoChange,
   salasOptions,
-  tiposOptions,
+  statusOptions,
   periodosOptions,
   onLimpar
 }) {
+
   const chips = [];
   if (sala !== TODAS_SALAS) {
     chips.push({ label: sala, onRemover: () => onSalaChange(TODAS_SALAS) });
   }
-  if (tipo !== TODOS_TIPOS) {
-    chips.push({ label: tipo, onRemover: () => onTipoChange(TODOS_TIPOS) });
+
+  if (status !== TODOS_STATUS) {
+    chips.push({ label: status, onRemover: () => onStatusChange(TODOS_STATUS) });
   }
+
   if (periodo !== TODOS_PERIODOS) {
     const periodoOpt = periodosOptions.find((p) => p.chave === periodo);
     chips.push({
@@ -143,17 +146,17 @@ export function HistoricoFilters({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z" />
-            <line x1="7" y1="7" x2="7.01" y2="7" />
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="8 12 11 15 16 9" />
           </svg>
           <select
-            value={tipo}
-            onChange={(e) => onTipoChange(e.target.value)}
+            value={status}
+            onChange={(e) => onStatusChange(e.target.value)}
             className={styles.select}
           >
-            <option>{TODOS_TIPOS}</option>
-            {tiposOptions.map((t) => (
-              <option key={t} value={t}>{t}</option>
+            <option>{TODOS_STATUS}</option>
+            {statusOptions.map((s) => (
+              <option key={s} value={s}>{s}</option>
             ))}
           </select>
           <svg
