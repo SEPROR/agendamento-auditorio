@@ -11,7 +11,7 @@ const Footer = () => {
             <div className={styles['footer-column']}>
               <span className={styles['column-label']}>Desenvolvimento:</span>
               <span>Ana Paula Matos Damasceno</span>
-              <span>Ingrid Gabrielly Medeiros</span>
+              <span>Ingrid Gabrielly da Silva Medeiros</span>
             </div>
             <div className={styles['footer-column']}>
               <span className={styles['column-label']}>Suporte/Contato:</span>
@@ -21,8 +21,8 @@ const Footer = () => {
           <div className={styles['footer-columns']}>
             <div className={styles['footer-column']}>
               <span className={styles['column-label']}>Supervisão:</span>
-              <span>Wenceslau</span>
-              <span>Renato</span>
+              <span>Wenceslau Abtibol Filho</span>
+              <span>Renato Pedrozo Fonseca</span>
               <span>Diego</span>
             </div>
           </div>

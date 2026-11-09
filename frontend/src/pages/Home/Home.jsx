@@ -404,7 +404,7 @@ const Home = () => {
                     <textarea
                       value={form.observacoes}
                       onChange={(e) => set("observacoes")(e.target.value)}
-                      placeholder="Ex: necessidade de projetor, microfone, disposição das cadeiras…"
+                      placeholder="Ex: necessidade de projetor, microfone, entre outros..."
                       rows={3}
                       className={styles.textarea}
                     />

@@ -9,7 +9,7 @@
   padding: 24px;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  background-image: linear-gradient(to top, #76b989a1,rgb(247, 237, 237), rgb(247, 237, 237));
+  background-image: linear-gradient(to top, #568664a1,rgb(247, 237, 237), rgb(247, 237, 237));
 }
 
 .card {
@@ -39,7 +39,7 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #2d6a3f;
+  color: #1a3b24;
   margin: 0 0 8px;
   text-align: center;
 }
@@ -48,7 +48,7 @@
   font-family: 'DM Serif Display', Georgia, serif;
   font-size: 28px;
   font-weight: 400;
-  color: #2d6a3f;
+  color: #1a3b24;
   margin: 0;
   line-height: 1.2;
   text-align: center;
@@ -71,7 +71,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #2d6a3f;
+  color: #1a3b24;
 }
 
 .input {

@@ -18,7 +18,7 @@
   pointer-events: none;
   background-repeat: no-repeat;
   background-size: 100% 100%; /* estica o SVG para preencher o header */
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 700 64' preserveAspectRatio='none'><path fill='%232d6a3f' d='M0,0 H700 C620,0 540,14 470,30 C400,46 330,64 250,64 H0 Z'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 700 64' preserveAspectRatio='none'><path fill='%23225230' d='M0,0 H700 C620,0 540,14 470,30 C400,46 330,64 250,64 H0 Z'/></svg>");
 }
 
 .inner {
@@ -99,12 +99,12 @@
 .userTrigger:hover,
 .userTrigger[data-open="true"] {
   background: #e9e9e9de;
-  border-color: #2d6a3f;
+  border-color: #225230;
 }
 .userAvatar {
   width: 30px; height: 30px;
   border-radius: 50%;
-  background: #2d6a3f;
+  background: #225230;
   color: #F8F9FA;
   font-size: 12px;
   font-weight: 700;
