@@ -70,12 +70,15 @@ export default function LoginPage() {
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.header}>
+          <div className={styles.headerText}>
+            <h1 className={styles.title}>Bem-vindo</h1>
+            <p className={styles.eyebrow}>ACESSE PARA AGENDAR</p>
+          </div>
           <img
+            className={styles.logo}
             src="/images/logo.png"
             alt="Logo Secretaria de Produção Rural"
-             />
-          <h1 className={styles.title}>Bem-vindo</h1>
-          <p className={styles.eyebrow}>ACESSE PARA AGENDAR</p>
+          />
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit} noValidate>
@@ -88,7 +91,7 @@ export default function LoginPage() {
               id="username"
               className={styles.input}
               type="text"
-              placeholder="seu.usuario"
+              placeholder="seu usuario"
               autoComplete="username"
               autoFocus
               required

@@ -9,7 +9,7 @@
   padding: 24px;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  background-image: linear-gradient(to top, #568664a1,rgb(247, 237, 237), rgb(247, 237, 237));
+  background-image: rgb(247, 237, 237);
 }
 
 .card {
@@ -24,14 +24,47 @@
 
 .header {
   margin-bottom: 32px;
-  text-align: center;
-  
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
 }
 
-.header img {
-  width: 30%;
-  height: 10%;
-  object-fit: contain; /* Ou 'cover', dependendo do formato do seu arquivo de logo */
+/* esquerda */
+.headerText {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* direita
+.headerText {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+} */
+
+/* direita */
+/* .logo {
+  grid-column: 3;
+  justify-self: end;
+  width: 50px;
+  height: auto;
+  object-fit: contain;
+} */
+
+/* esquerda */
+.logo {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  width: 50px;
+  height: auto;
+  object-fit: contain;
 }
 
 .eyebrow {
@@ -40,7 +73,7 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #1a3b24;
-  margin: 0 0 8px;
+  margin: 8px 0 0;
   text-align: center;
 }
 
