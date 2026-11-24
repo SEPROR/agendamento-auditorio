@@ -6,6 +6,7 @@ import session from 'express-session';
 import fs from 'fs';
 import adModule from 'adauth';
 import nodemailer from "nodemailer";
+import { Client as LdapClient } from 'ldapts'; // npm i ldapts
 
 dotenv.config();
 const ADAuth = adModule.default;
@@ -55,6 +56,19 @@ function requireAuth(req, res, next) {
   return res.status(401).json({ erro: 'Não autenticado' });
 }
 
+// protege rotas de administração (grupo de admin do AD, definido no login)
+function requireAdmin(req, res, next) {
+  if (req.session && req.session.isAdmin) return next();
+  return res.status(403).json({ erro: 'Sem permissão' });
+}
+
+// protege a gestão de acessos (somente SUPER-ADMIN)
+function requireSuperAdmin(req, res, next) {
+  if (req.session?.perfil === 'SUPER-ADMIN') return next();
+  return res.status(403).json({ erro: 'Sem permissão' });
+}
+
+
 /////////////////////////////////
 /// configuração email ///
 ////////////////////////////////
@@ -88,21 +102,21 @@ async function getADClient() {
     referrals: { enabled: false }
   });
 
-  
+
   adInstance.on('error', (err) => {
     console.error('Erro de conexão com o AD:', err.message);
   });
 
-  
+
   await adInstance.initialise();
 
   return adInstance;
 }
 
-const AD_ADMIN_GROUP_DN = process.env.AD_ADMIN_GROUP_DN;
+// const AD_ADMIN_GROUP_DN = process.env.AD_ADMIN_GROUP_DN;
 
 
-const AD_ORG_PREFIX = process.env.AD_ORG_PREFIX; 
+const AD_ORG_PREFIX = process.env.AD_ORG_PREFIX;
 
 function normalizeUsername(input) {
   if (!input) return input;
@@ -121,6 +135,81 @@ function normalizeUsername(input) {
 
   return user;
 }
+
+/////////////////////////////////////////////
+/// pesquisa de usuários no AD (controle de acessos) ///
+/////////////////////////////////////////////
+
+const AD_ATRIBUTOS_BUSCA = ['sAMAccountName', 'displayName', 'mail', 'userAccountControl'];
+
+// escapa caracteres especiais de filtro LDAP
+function escapeLdap(valor) {
+  return String(valor).replace(/[\\*()\0]/g, (c) => '\\' + c.charCodeAt(0).toString(16).padStart(2, '0'));
+}
+
+function entradaParaUsuario(entry) {
+  const uac = Number(entry.userAccountControl || 0);
+  return {
+    login: String(entry.sAMAccountName || '').toLowerCase(),
+    nomeCompleto: entry.displayName || entry.sAMAccountName,
+    email: entry.mail || null,
+    ativo: (uac & 2) === 0, // bit 2 = conta desativada
+  };
+}
+
+async function consultarAD(filtro, limite) {
+  const contaServico = process.env.AD_SERVICE_ACCOUNT;
+  const senhaServico = process.env.AD_SERVICE_PASSWORD;
+
+  if (!contaServico || !senhaServico || !process.env.AD_URL || !process.env.AD_SEARCH_BASE) {
+    throw new Error('Faltam AD_URL, AD_SEARCH_BASE, AD_SERVICE_ACCOUNT ou AD_SERVICE_PASSWORD no .env');
+  }
+
+  // aceita login curto (usa o AD_ORG_PREFIX), UPN, DOMINIO\usuario ou DN completo
+  const usuarioBind = /[@\\=]/.test(contaServico) || !process.env.AD_ORG_PREFIX
+    ? contaServico
+    : `${contaServico}@${process.env.AD_ORG_PREFIX}`;
+
+  const client = new LdapClient({
+    url: process.env.AD_URL,
+    timeout: 5000,
+    connectTimeout: 5000,
+  });
+  try {
+    await client.bind(usuarioBind, senhaServico);
+    const { searchEntries } = await client.search(process.env.AD_SEARCH_BASE, {
+      scope: 'sub',
+      filter: filtro,
+      attributes: AD_ATRIBUTOS_BUSCA,
+      sizeLimit: limite,
+    });
+    return searchEntries.map(entradaParaUsuario).filter((u) => u.login);
+  } catch (err) {
+    // o AD devolve "size limit exceeded" quando há mais resultados que o limite;
+    // nesse caso o termo está amplo demais
+    if (/size ?limit/i.test(err.message)) return [];
+    throw err;
+  } finally {
+    await client.unbind().catch(() => { });
+  }
+}
+
+function buscarUsuariosADPorTermo(termo) {
+  const t = escapeLdap(termo);
+  return consultarAD(
+    `(&(objectCategory=person)(objectClass=user)(|(sAMAccountName=*${t}*)(displayName=*${t}*)(mail=*${t}*)))`,
+    20,
+  );
+}
+
+async function buscarUsuarioADPorLogin(login) {
+  const lista = await consultarAD(
+    `(&(objectCategory=person)(objectClass=user)(sAMAccountName=${escapeLdap(login)}))`,
+    2,
+  );
+  return lista[0] || null;
+}
+
 
 // ==============================================
 // SETOR AUTOMÁTICO A PARTIR DA OU DO AD
@@ -143,24 +232,24 @@ function extrairSetorDoDN(dn) {
 // PERMISSÃO PARA DESMARCAR RESERVAS
 // ==============================================
 
+const PERMISSAO_DESMARCAR = 'DESMARCAR_RESERVAS';
+
+// const DESMARCAR_USUARIOS = (process.env.AD_DESMARCAR_USUARIOS || 'jtavares')
+//   .split(',')
+//   .map((s) => s.trim().toLowerCase())
+//   .filter(Boolean);
 
 
-const DESMARCAR_USUARIOS = (process.env.AD_DESMARCAR_USUARIOS || 'jtavares')
-  .split(',')
-  .map((s) => s.trim().toLowerCase())
-  .filter(Boolean);
+// const DESMARCAR_GRUPOS = (process.env.AD_DESMARCAR_GRUPOS || 'gilog')
+//   .split(',')
+//   .map((s) => s.trim().toLowerCase())
+//   .filter(Boolean);
 
 
-const DESMARCAR_GRUPOS = (process.env.AD_DESMARCAR_GRUPOS || 'gilog')
-  .split(',')
-  .map((s) => s.trim().toLowerCase())
-  .filter(Boolean);
-
-
-function cnDoDN(dn) {
-  const m = /^CN=((?:\\.|[^,])+)/i.exec(dn || '');
-  return m ? m[1].replace(/\\(.)/g, '$1').toLowerCase() : null;
-}
+// function cnDoDN(dn) {
+//   const m = /^CN=((?:\\.|[^,])+)/i.exec(dn || '');
+//   return m ? m[1].replace(/\\(.)/g, '$1').toLowerCase() : null;
+// }
 
 function requireDesmarcar(req, res, next) {
   if (req.session?.podeDesmarcar) return next();
@@ -299,10 +388,10 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
 
     await client.query('BEGIN');
 
-    
+
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`${sala}|${data}`]);
 
-    
+
     const conflito = await client.query(
       `SELECT to_char(hora_inicio,'HH24:MI') AS inicio, to_char(hora_fim,'HH24:MI') AS fim
          FROM agendamentos
@@ -328,7 +417,7 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
     let usuario_id;
     if (usuarioResult.rows.length > 0) {
       usuario_id = usuarioResult.rows[0].id;
-      
+
       await client.query(
         'UPDATE usuarios SET email = COALESCE($1, email), setor_id = $2 WHERE id = $3',
         [emailFinal, setor_id, usuario_id]
@@ -341,7 +430,7 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
       usuario_id = novoUsuario.rows[0].id;
     }
 
-    
+
     const insertQuery = `
       INSERT INTO agendamentos 
         (usuario_id, sala_id, data, hora_inicio, hora_fim, observacoes, solicitante_ad_login)
@@ -399,7 +488,7 @@ app.post('/api/agendamentos', requireAuth, async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    try { await client.query('ROLLBACK'); } catch {}
+    try { await client.query('ROLLBACK'); } catch { }
     console.error('Erro ao criar agendamento:', err);
     res.status(500).json({ erro: 'Erro ao criar agendamento' });
   } finally {
@@ -427,7 +516,7 @@ app.post('/api/usuarios', async (req, res) => {
 });
 
 // Relatório (admin): mantém os cancelados/desmarcados e mostra o status
-app.get('/api/agendamentos/relatorio', requireAuth, async (req, res) => {
+app.get('/api/agendamentos/relatorio', requireAuth, requireAdmin, async (req, res) => {
   try {
     const query = `
       SELECT 
@@ -556,7 +645,7 @@ app.patch('/api/agendamentos/:id/desmarcar', requireAuth, requireDesmarcar, asyn
       return res.status(409).json({ erro: `Agendamento já está ${ag.status}` });
     }
 
-  
+
     const upd = await pool.query(
       "UPDATE agendamentos SET status = 'desmarcado' WHERE id = $1 AND status = 'confirmado'",
       [id]
@@ -600,6 +689,195 @@ app.patch('/api/agendamentos/:id/desmarcar', requireAuth, requireDesmarcar, asyn
   }
 });
 
+/////////////////////////////////////////
+/// controle de acessos (somente SUPER-ADMIN)  ///
+/////////////////////////////////////////
+
+const normalizarLogin = (login) => String(login || '').trim().toLowerCase();
+
+// Catálogo de permissões
+app.get('/api/acessos/permissoes', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT codigo, nome, descricao, padrao_admin AS "padraoAdmin"
+         FROM permissoes ORDER BY nome`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro ao buscar permissões' });
+  }
+});
+
+// Pesquisa usuários no Active Directory
+app.get('/api/acessos/ad', requireAuth, requireSuperAdmin, async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  if (q.length < 3) return res.json([]);
+
+  try {
+    const encontrados = await buscarUsuariosADPorTermo(q);
+    const { rows } = await pool.query('SELECT login FROM usuarios_acesso');
+    const jaTem = new Set(rows.map((r) => r.login));
+    res.json(encontrados.map((u) => ({ ...u, jaTemAcesso: jaTem.has(u.login) })));
+  } catch (err) {
+    console.error('Erro ao pesquisar no AD:', err.message);
+    res.status(502).json({ erro: 'Não foi possível consultar o Active Directory.' });
+  }
+});
+
+// Lista quem já tem acesso
+app.get('/api/acessos/usuarios', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT u.login, u.nome AS "nomeCompleto", u.email, u.perfil,
+              COUNT(p.permissao)::int AS "totalPermissoes"
+         FROM usuarios_acesso u
+         LEFT JOIN usuarios_acesso_permissoes p ON p.login = u.login
+        GROUP BY u.login
+        ORDER BY u.nome`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro ao buscar usuários' });
+  }
+});
+
+// Adiciona um usuário do AD
+app.post('/api/acessos/usuarios', requireAuth, requireSuperAdmin, async (req, res) => {
+  const login = normalizarLogin(req.body.login);
+  if (!login) return res.status(400).json({ erro: 'Informe o usuário.' });
+
+  const client = await pool.connect();
+  try {
+    // confirma no AD (não confia em nome/e-mail vindos do navegador)
+    const adUser = await buscarUsuarioADPorLogin(login);
+    if (!adUser) return res.status(404).json({ erro: 'Usuário não encontrado no Active Directory.' });
+    if (!adUser.ativo) return res.status(400).json({ erro: 'Este usuário está desativado no Active Directory.' });
+
+    await client.query('BEGIN');
+    const ins = await client.query(
+      `INSERT INTO usuarios_acesso (login, nome, email, perfil, criado_por)
+       VALUES ($1, $2, $3, 'ADMIN', $4)
+       ON CONFLICT (login) DO NOTHING`,
+      [adUser.login, adUser.nomeCompleto, adUser.email, req.session.adLogin || null]
+    );
+    if (ins.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ erro: 'Este usuário já tem acesso cadastrado.' });
+    }
+    // começa com as permissões padrão do perfil ADMIN
+    await client.query(
+      `INSERT INTO usuarios_acesso_permissoes (login, permissao)
+       SELECT $1, codigo FROM permissoes WHERE padrao_admin`,
+      [adUser.login]
+    );
+    await client.query('COMMIT');
+    res.status(201).json({ login: adUser.login });
+  } catch (err) {
+    try { await client.query('ROLLBACK'); } catch { }
+    console.error('Erro ao adicionar usuário:', err);
+    res.status(500).json({ erro: 'Erro ao adicionar usuário' });
+  } finally {
+    client.release();
+  }
+});
+
+// Detalhe de um usuário
+app.get('/api/acessos/usuarios/:login', requireAuth, requireSuperAdmin, async (req, res) => {
+  const login = normalizarLogin(req.params.login);
+  try {
+    const { rows } = await pool.query(
+      'SELECT login, nome, email, perfil FROM usuarios_acesso WHERE login = $1',
+      [login]
+    );
+    const u = rows[0];
+    if (!u) return res.status(404).json({ erro: 'Usuário não encontrado' });
+
+    const perms = await pool.query(
+      'SELECT permissao FROM usuarios_acesso_permissoes WHERE login = $1',
+      [login]
+    );
+
+    // dados atuais do AD (se o AD estiver fora do ar, usa o que está salvo)
+    let ad = null;
+    try { ad = await buscarUsuarioADPorLogin(login); } catch (e) { console.error('AD indisponível:', e.message); }
+
+    res.json({
+      login: u.login,
+      nomeCompleto: ad?.nomeCompleto || u.nome,
+      email: ad?.email ?? u.email,
+      ativo: ad ? ad.ativo : true,
+      perfil: u.perfil,
+      permissoes: perms.rows.map((r) => r.permissao),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro ao buscar usuário' });
+  }
+});
+
+// Salva perfil e permissões
+app.put('/api/acessos/usuarios/:login', requireAuth, requireSuperAdmin, async (req, res) => {
+  const login = normalizarLogin(req.params.login);
+  const { perfil, permissoes } = req.body;
+
+  if (!['ADMIN', 'SUPER-ADMIN'].includes(perfil) || !Array.isArray(permissoes)) {
+    return res.status(400).json({ erro: 'Dados inválidos.' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const upd = await client.query('UPDATE usuarios_acesso SET perfil = $2 WHERE login = $1', [login, perfil]);
+    if (upd.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ erro: 'Usuário não encontrado' });
+    }
+
+    await client.query('DELETE FROM usuarios_acesso_permissoes WHERE login = $1', [login]);
+
+    // SUPER-ADMIN sempre fica com todas; ADMIN usa a lista enviada (só códigos existentes)
+    if (perfil === 'SUPER-ADMIN') {
+      await client.query(
+        'INSERT INTO usuarios_acesso_permissoes (login, permissao) SELECT $1, codigo FROM permissoes',
+        [login]
+      );
+    } else if (permissoes.length > 0) {
+      await client.query(
+        `INSERT INTO usuarios_acesso_permissoes (login, permissao)
+         SELECT $1, codigo FROM permissoes WHERE codigo = ANY($2::text[])`,
+        [login, permissoes]
+      );
+    }
+    await client.query('COMMIT');
+    res.json({ login, perfil });
+  } catch (err) {
+    try { await client.query('ROLLBACK'); } catch { }
+    console.error('Erro ao salvar acessos:', err);
+    res.status(500).json({ erro: 'Não foi possível salvar as alterações.' });
+  } finally {
+    client.release();
+  }
+});
+
+// Remove o acesso de um usuário
+app.delete('/api/acessos/usuarios/:login', requireAuth, requireSuperAdmin, async (req, res) => {
+  const login = normalizarLogin(req.params.login);
+  if (login === req.session.adLogin) {
+    return res.status(400).json({ erro: 'Você não pode remover o seu próprio acesso.' });
+  }
+  try {
+    const del = await pool.query('DELETE FROM usuarios_acesso WHERE login = $1', [login]);
+    if (del.rowCount === 0) return res.status(404).json({ erro: 'Usuário não encontrado' });
+    res.status(204).end();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erro: 'Erro ao remover acesso' });
+  }
+});
+
+
 /////////////////////
 /// rota login AD////
 /////////////////////
@@ -618,22 +896,40 @@ app.post('/api/login-ad', async (req, res) => {
     const loginNormalizado = normalizeUsername(usuario);
     const user = await ad.authenticate(loginNormalizado, senha);
 
-    const groups = Array.isArray(user.memberOf)
-      ? user.memberOf
-      : (user.memberOf ? [user.memberOf] : []);
+    // const groups = Array.isArray(user.memberOf)
+    //   ? user.memberOf
+    //   : (user.memberOf ? [user.memberOf] : []);
 
-    const targetAdminGroup = (AD_ADMIN_GROUP_DN || '').toLowerCase();
-    const isAdmin = targetAdminGroup
-      ? groups.some((g) => typeof g === 'string' && g.toLowerCase() === targetAdminGroup)
-      : false;
+    // const targetAdminGroup = (AD_ADMIN_GROUP_DN || '').toLowerCase();
+    // const isAdmin = targetAdminGroup
+    //   ? groups.some((g) => typeof g === 'string' && g.toLowerCase() === targetAdminGroup)
+    //   : false;
 
-    // Permissão para desmarcar: usuário autorizado OU membro de grupo autorizado
+    // // Permissão para desmarcar: usuário autorizado OU membro de grupo autorizado
+    // const loginAD = (user.sAMAccountName || '').toLowerCase();
+    // const usuarioAutorizado = DESMARCAR_USUARIOS.includes(loginAD);
+    // const grupoAutorizado = groups.some(
+    //   (g) => typeof g === 'string' && DESMARCAR_GRUPOS.includes(cnDoDN(g))
+    // );
+    // const podeDesmarcar = usuarioAutorizado || grupoAutorizado;
+
     const loginAD = (user.sAMAccountName || '').toLowerCase();
-    const usuarioAutorizado = DESMARCAR_USUARIOS.includes(loginAD);
-    const grupoAutorizado = groups.some(
-      (g) => typeof g === 'string' && DESMARCAR_GRUPOS.includes(cnDoDN(g))
+
+    // Busca perfil e permissões no banco
+    const acessoRes = await pool.query(
+      'SELECT perfil FROM usuarios_acesso WHERE login = $1',
+      [loginAD]
     );
-    const podeDesmarcar = usuarioAutorizado || grupoAutorizado;
+    const permsRes = await pool.query(
+      'SELECT permissao FROM usuarios_acesso_permissoes WHERE login = $1',
+      [loginAD]
+    );
+
+    const perfil = acessoRes.rows[0]?.perfil || null;   // 'ADMIN' | 'SUPER-ADMIN' | null
+    const permissoes = permsRes.rows.map((r) => r.permissao);
+
+    const isAdmin = !!perfil;
+    const podeDesmarcar = permissoes.includes('DESMARCAR_RESERVAS'); // use o código real da sua tabela `permissoes`
 
     console.log('Permissão de desmarcar:', loginAD, '->', podeDesmarcar);
 
@@ -652,6 +948,8 @@ app.post('/api/login-ad', async (req, res) => {
     req.session.nivelAcesso = isAdmin ? 'ADMIN' : 'USER';
     req.session.setorId = setorInfo ? setorInfo.id : null;
     req.session.setorNome = setorInfo ? setorInfo.nome : null;
+    req.session.permissoes = permissoes;
+    req.session.perfil = perfil;
 
     return res.json({
       success: true,

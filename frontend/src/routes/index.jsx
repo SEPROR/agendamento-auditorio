@@ -6,6 +6,8 @@ import Home from '../pages/Home/Home';
 import Relatorio from '../pages/Relatorio/Relatorio';
 import Login from '../pages/Login/Login';
 import MeusAgendamentos from '../pages/MeusAgendamentos';
+import ControleAcessos from '../pages/ControleAcessos';
+import UsuariosAD from '../pages/UsuariosAD';
 
 const AppRoutes = () => {
   return (
@@ -25,7 +27,7 @@ const AppRoutes = () => {
           />
 
 
-           <Route
+          <Route
             path="/meusagendamentos"
             element={
               <PrivateRoute>
@@ -44,6 +46,21 @@ const AppRoutes = () => {
               </PrivateRoute>
             }
           />
+
+          <Route
+            path="/agendamentos/controle/:login"
+            element={<PrivateRoute requireGilog><ControleAcessos /></PrivateRoute>}
+          />
+
+          <Route
+            path="/agendamentos/usuarios"
+            element={
+              <PrivateRoute requireGilog>
+                <UsuariosAD />
+              </PrivateRoute>
+            }
+          />
+
         </Routes>
       </AuthProvider>
     </BrowserRouter>

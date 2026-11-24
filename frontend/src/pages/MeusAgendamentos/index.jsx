@@ -13,6 +13,14 @@ const STATUS_CONFIG = {
   desmarcado: { label: "Desmarcado", className: styles.statusDesmarcado, dot: styles.dotDesmarcado },
 };
 
+function cn(...classes) {
+  return classes
+    .filter(Boolean)
+    .flatMap((className) => className.split(' '))
+    .map((className) => styles[className])
+    .join(' ')
+}
+
 function CalendarIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={styles.iconCyan}>
@@ -169,11 +177,14 @@ export default function MeusAgendamentos() {
       <Header />
 
       <main className={styles.main}>
-        <div className={styles.pageHeader}>
-
-          <h1 className={styles.pageTitle}>Meus Agendamentos</h1>
-          <p className={styles.pageSubtitle}>Gerencie e acompanhe suas reservas de salas</p>
-        </div>
+        <header className={cn('page-heading')}>
+          <div>
+            <h1>Meus agendamentos</h1>
+            <p className={cn('page-subtitle')}>
+              Acompanhe suas reservas de salas
+            </p>
+          </div>
+        </header>
 
         {loading && <p className={styles.stateMsg}>Carregando...</p>}
         {erro && <p className={styles.stateError}>{erro}</p>}

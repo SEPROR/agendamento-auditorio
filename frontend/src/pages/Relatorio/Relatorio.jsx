@@ -22,6 +22,14 @@ const TODOS_STATUS = "Todos os Status";
 const TODOS_PERIODOS = "Todos os Períodos";
 const STATUS_OPTIONS = ["Confirmado", "Cancelado", "Desmarcado"];
 
+function cn(...classes) {
+  return classes
+    .filter(Boolean)
+    .flatMap((className) => className.split(' '))
+    .map((className) => styles[className])
+    .join(' ')
+}
+
 function mapearAgendamento(a) {
   return {
     id: a.id,
@@ -241,12 +249,16 @@ export default function Relatorio() {
     <div>
       <Header />
       <main id="principal" className={styles.container}>
-        <div className={styles.pageTitleRow}>
+
+        <header className={cn('page-heading')}>
           <div>
-            <h1>Histórico de Agendamentos</h1>
-            <p>Registros de reservas de salas e auditórios</p>
+            <p className={cn('eyebrow')}>ADMINISTRAÇÃO</p>
+            <h1>Histórico de agendamentos</h1>
+            <p className={cn('page-subtitle')}>
+            Registros de reservas de salas e auditórios
+            </p>
           </div>
-        </div>
+        </header>
 
         {/* <StatsGrid filtrados={filtrados} totalGeral={dados.length} /> */}
 

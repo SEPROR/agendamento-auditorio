@@ -90,6 +90,12 @@ export default function Header() {
                 </a>
               )}
 
+              {isGilog && (
+              <a href="/agendamentos/usuarios" className={styles.dropdownItem}>
+                  Controle de Usuário
+                </a>
+                )}
+
               <div className={styles.dropdownDivider} />
 
               <button
