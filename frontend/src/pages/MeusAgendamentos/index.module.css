@@ -48,7 +48,7 @@
   margin: 0;
   color: #133923;
   font-size: clamp(29px, 3.4vw, 42px);
-  font-weight: 410;
+  font-weight: 400;
   letter-spacing: -0.04em;
   line-height: 1.08;
 }

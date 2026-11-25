@@ -592,8 +592,8 @@
 
 .toast {
   position: fixed;
-  z-index: 20;
-  top: 24px;
+  z-index: 9999;
+  top: 96px;
   right: 24px;
   display: flex;
   width: min(390px, calc(100vw - 32px));

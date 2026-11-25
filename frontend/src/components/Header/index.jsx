@@ -8,7 +8,7 @@ export default function Header() {
   const menuRef = useRef(null);
 
   // Fonte única de verdade: vem do AuthProvider (sem fetch duplicado aqui)
-  const { usuario, isGilog, loading, logout } = useAuth();
+  const { usuario, isGilog, isSuperAdmin, loading, logout } = useAuth();
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -90,7 +90,7 @@ export default function Header() {
                 </a>
               )}
 
-              {isGilog && (
+              {isSuperAdmin && (
               <a href="/agendamentos/usuarios" className={styles.dropdownItem}>
                   Controle de Usuário
                 </a>

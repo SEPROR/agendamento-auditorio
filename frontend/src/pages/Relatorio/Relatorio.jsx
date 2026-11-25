@@ -190,7 +190,7 @@ export default function Relatorio() {
   const limparFiltros = useCallback(() => {
     setBusca("");
     setSala(TODAS_SALAS);
-    setTipo(TODOS_TIPOS);
+    setStatusSel(TODOS_STATUS);
     setPeriodo(TODOS_PERIODOS);
   }, []);
 
@@ -232,7 +232,7 @@ export default function Relatorio() {
     }
   }, []);
 
-  const filtrosAtuaisLabel = { sala, statusSel, periodo };
+  const filtrosAtuaisLabel = { sala, status: statusSel, periodo };
 
   const handleGerarPdf = useCallback(() => {
     abrirJanelaPdf(filtrados, filtrosAtuaisLabel);

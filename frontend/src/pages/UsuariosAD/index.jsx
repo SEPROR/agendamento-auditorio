@@ -183,7 +183,7 @@ export default function ListaUsuarios() {
                           className={cn('btn btn-ghost')}
                           onClick={() => navigate(`/agendamentos/controle/${user.login}`)}
                         >
-                          Configurar
+                          Editar
                         </button>
                       ) : (
                         <button
@@ -233,7 +233,7 @@ export default function ListaUsuarios() {
                       className={cn('btn btn-ghost')}
                       onClick={() => navigate(`/agendamentos/controle/${user.login}`)}
                     >
-                      Configurar
+                      Editar
                     </button>
                     <button
                       type="button"

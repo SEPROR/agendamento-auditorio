@@ -689,6 +689,17 @@ app.patch('/api/agendamentos/:id/desmarcar', requireAuth, requireDesmarcar, asyn
   }
 });
 
+app.post('/api/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Erro ao encerrar sessão:', err);
+      return res.status(500).json({ erro: 'Erro ao sair' });
+    }
+    res.clearCookie('connect.sid');
+    res.json({ success: true });
+  });
+});
+
 /////////////////////////////////////////
 /// controle de acessos (somente SUPER-ADMIN)  ///
 /////////////////////////////////////////
@@ -977,12 +988,14 @@ app.get('/api/auth/status', (req, res) => {
       autenticado: true,
       usuario: req.session.usuario,
       isAdmin: req.session.isAdmin,
+      perfil: req.session.perfil || null,
+      permissoes: req.session.permissoes || [],
       podeDesmarcar: !!req.session.podeDesmarcar,
       setorId: req.session.setorId || null,
       setorNome: req.session.setorNome || null,
     });
   }
-  return res.status(401).json({ autenticado: false });
+  return res.json({ autenticado: false });
 });
 
 const PORT = process.env.PORT || 3000;

@@ -49,13 +49,13 @@ const AppRoutes = () => {
 
           <Route
             path="/agendamentos/controle/:login"
-            element={<PrivateRoute requireGilog><ControleAcessos /></PrivateRoute>}
+            element={<PrivateRoute requireSuperAdmin><ControleAcessos /></PrivateRoute>}
           />
 
           <Route
             path="/agendamentos/usuarios"
             element={
-              <PrivateRoute requireGilog>
+              <PrivateRoute requireSuperAdmin>
                 <UsuariosAD />
               </PrivateRoute>
             }

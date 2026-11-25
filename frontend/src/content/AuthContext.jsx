@@ -4,12 +4,18 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:2999';
 
 const AuthContext = createContext(null);
 
+const ESTADO_DESLOGADO = {
+  loading: false,
+  autenticado: false,
+  usuario: null,
+  isGilog: false,
+  isSuperAdmin: false,
+};
+
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState({
+    ...ESTADO_DESLOGADO,
     loading: true,
-    autenticado: false,
-    usuario: null,
-    isGilog: false,
   });
 
  const checkAuthStatus = useCallback(async () => {
@@ -24,12 +30,13 @@ export function AuthProvider({ children }) {
       autenticado: !!data.autenticado,
       usuario: data.usuario || null,
       isGilog: !!data.isAdmin,   // mapeia isAdmin do backend -> isGilog no front
+      isSuperAdmin: data.perfil === 'SUPER-ADMIN', // <- aqui, onde "data" existe
     });
 
     return !!data.autenticado;
   } catch (err) {
     console.error('Erro ao verificar autenticação:', err);
-    setAuth({ loading: false, autenticado: false, usuario: null, isGilog: false });
+    setAuth(ESTADO_DESLOGADO);
     return false;
   }
 }, []);
@@ -43,7 +50,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error('Erro ao fazer logout:', err);
     } finally {
-      setAuth({ loading: false, autenticado: false, usuario: null, isGilog: false });
+      setAuth(ESTADO_DESLOGADO);
       // Força um reload completo: descarta todo o estado JS em memória
       // e impede que o bfcache guarde uma versão "autenticada" desta página.
       window.location.replace('/');
